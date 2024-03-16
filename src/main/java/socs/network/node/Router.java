@@ -47,9 +47,8 @@ public class Router {
    * <p/>
    * NOTE: this command should not trigger link database synchronization
    */
-  private void processAttach(String processIP, short processPort,
-                             String simulatedIP) {
-
+  private void processAttach(String processIP, short processPort, String simulatedIP) {
+    
   }
 
 
@@ -75,8 +74,7 @@ public class Router {
    * <p/>
    * This command does trigger the link database synchronization
    */
-  private void processConnect(String processIP, short processPort,
-                              String simulatedIP) {
+  private void processConnect(String processIP, short processPort, String simulatedIP) {
 
   }
 
