@@ -16,6 +16,7 @@
 - First draft of the proccessAttach method in the Router class
 - **Question** : should we check if array of link is already full and tell user that no more links can be added? Also, should we check if the link is already in the array of links?
 - **Question** : Should we specifically check if we got REJECTED response in the attach method? 
+- In `requestHandler` method, we use server sockets because a server socket listens for incoming connection requests, while a regular (client) socket initiates connections to server sockets for communication.
 
 ---
 ## To-Dos
