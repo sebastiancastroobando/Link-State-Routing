@@ -23,4 +23,7 @@
 
 ---
 ## To-Dos
-- [ ] Find cure for cancer
+- [ ] Ask on ED about the routerID and how it's supposed to be used. 
+- [ ] Spawn 4 threads for each running router. 1 Thread = 1 link.
+- [ ] implement process attach (find a way to send SOS message).
+- [ ]  

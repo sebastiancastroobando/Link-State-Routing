@@ -1,5 +1,6 @@
 package socs.network.node;
 
+import socs.network.message.SOSPFPacket;
 import socs.network.util.Configuration;
 
 import java.io.BufferedReader;
@@ -56,7 +57,51 @@ public class Router {
    * NOTE: this command should not trigger link database synchronization
    */
   private void processAttach(String processIP, short processPort, String simulatedIP) {
+    // First create packet to send to the remote router
+    SOSPFPacket packet = new SOSPFPacket();
     
+    packet.srcProcessIP = rd.processIPAddress;
+    packet.srcProcessPort = rd.processPortNumber;
+    
+    packet.srcIP = rd.processIPAddress;
+    packet.dstIP = processIP;
+    
+    packet.sospfType = 0;
+    packet.routerID = rd.simulatedIPAddress;
+    packet.neighborID = simulatedIP;
+
+    // Socket and buffer definition
+    Socket socket = null;
+    InputStreamReader inputStreamReader = null;
+    OutputStreamWriter outputStreamWriter = null;
+    BufferedReader bufferedReader = null;
+    BufferedWriter bufferedWriter = null;
+
+    try {
+      // IP address of server (remote router) and TCP port
+      socket = new Socket(processIP, processPort);
+
+      // Read from the server and output to the server
+      inputStreamReader = new InputStreamReader((socket.getInputStream()));
+      outputStreamWriter = new OutputStreamWriter(socket.getOutputStream());
+
+      bufferedReader = new BufferedReader(inputStreamReader);
+      bufferedWriter = new BufferedWriter(outputStreamWriter);
+
+      
+
+      while(true) {
+        // Server is the remote (or neighbor) router
+        String msgFromServer = bufferedReader.readLine();
+      }
+
+
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      // TODO
+    }
   }
 
 
