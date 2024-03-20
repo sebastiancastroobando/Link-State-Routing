@@ -23,7 +23,5 @@
 
 ---
 ## To-Dos
-- [ ] Ask on ED about the routerID and how it's supposed to be used. 
-- [ ] Spawn 4 threads for each running router. 1 Thread = 1 link.
-- [ ] implement process attach (find a way to send SOS message).
-- [ ]  
+- [x] Ask on ED about the routerID and how it's supposed to be used. 
+- [ ] Based on scheme one Sebastian do requestHandler and Denis do attach.
