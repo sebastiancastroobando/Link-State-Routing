@@ -7,8 +7,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 
@@ -111,7 +115,45 @@ public class Router {
    * The intuition is that if router2 is an unknown/anomaly router, it is always safe to reject the attached request from router2.
    */
   private void requestHandler() {
-  
+    // define the server socket
+    ServerSocket serverSocket = null;
+    Socket socket = null;
+
+    try {
+      serverSocket = new ServerSocket(rd.processPortNumber);
+      while(true) {
+        socket = serverSocket.accept();
+        ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
+        SOSPFPacket packet = (SOSPFPacket) objectInputStream.readObject();
+        
+        // We need to check if the SOSPFPacket is a of type HELLO, if so then prompt the user to accept or reject the request
+        if(packet.sospfType == 0) {
+          System.out.println("received HELLO from " + packet.srcIP);
+          System.out.println("Do you accept this request? (Y/N)");
+          
+          BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+          String response = br.readLine();
+          if(response.equals("Y") || response.equals("y")){
+            // Send a HELLO message back to the remote router
+            SOSPFPacket helloPacket = new SOSPFPacket();
+            helloPacket.srcProcessIP = rd.processIPAddress;
+            helloPacket.srcProcessPort = rd.processPortNumber;
+            helloPacket.srcIP = rd.processIPAddress;
+            helloPacket.dstIP = packet.srcIP;
+            helloPacket.sospfType = 0;
+            helloPacket.routerID = rd.simulatedIPAddress;
+            helloPacket.neighborID = packet.srcIP;
+
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+            objectOutputStream.writeObject(helloPacket);
+          }
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      System.out.println("Closing the server socket");
+    }
   }
 
   /**
