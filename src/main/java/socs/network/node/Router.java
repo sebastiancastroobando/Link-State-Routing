@@ -25,6 +25,25 @@ public class Router {
 
   //assuming that all routers are with 4 ports
   Link[] ports = new Link[4];
+  // We need 4 ports for each router, so we need to keep track of the ports that are being used
+  Thread[] portThreads = new Thread[4];
+
+
+  // Helper methods -----------------------------------------------------------
+  
+  // get available port
+  private int getAvailablePort() {
+    // Since we keep a reference to the threads, could we actually check if the thread is alive?
+    // then we could check if the port is available... trying to avoid race conditions...
+    for (int i = 0; i < ports.length; i++) {
+      if (ports[i] == null) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  // --------------------------------------------------------------------------
 
   public Router(Configuration config) {
     rd.simulatedIPAddress = config.getString("socs.network.router.ip");
@@ -115,44 +134,77 @@ public class Router {
    * The intuition is that if router2 is an unknown/anomaly router, it is always safe to reject the attached request from router2.
    */
   private void requestHandler() {
-    // define the server socket
+    // Define the server socket
     ServerSocket serverSocket = null;
     Socket socket = null;
 
+    // We will receive a SOSPFPacket from the remote router
+    SOSPFPacket packet = null;
+
     try {
       serverSocket = new ServerSocket(rd.processPortNumber);
-      while(true) {
+      while (true) {
+        // Note that accept is "blocking" and will wait for a connection to be made.
+        // only one connection can be made at a time.
         socket = serverSocket.accept();
         ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
-        SOSPFPacket packet = (SOSPFPacket) objectInputStream.readObject();
-        
-        // We need to check if the SOSPFPacket is a of type HELLO, if so then prompt the user to accept or reject the request
-        if(packet.sospfType == 0) {
-          System.out.println("received HELLO from " + packet.srcIP);
-          System.out.println("Do you accept this request? (Y/N)");
-          
-          BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-          String response = br.readLine();
-          if(response.equals("Y") || response.equals("y")){
-            // Send a HELLO message back to the remote router
-            SOSPFPacket helloPacket = new SOSPFPacket();
-            helloPacket.srcProcessIP = rd.processIPAddress;
-            helloPacket.srcProcessPort = rd.processPortNumber;
-            helloPacket.srcIP = rd.processIPAddress;
-            helloPacket.dstIP = packet.srcIP;
-            helloPacket.sospfType = 0;
-            helloPacket.routerID = rd.simulatedIPAddress;
-            helloPacket.neighborID = packet.srcIP;
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+        packet = (SOSPFPacket) objectInputStream.readObject();
 
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-            objectOutputStream.writeObject(helloPacket);
+        if (packet.sospfType == 0) {
+          // First, check if the we have space in ports array
+          int port = getAvailablePort();
+          if (port == -1) {
+            // No ports available means that we don't have to ask the user if they want to attach the remote router
+            // send SOSPF packet with REJECT HELLO type
+            SOSPFPacket rejectPacket = new SOSPFPacket();
+            rejectPacket.sospfType = 2; // No need to put other fields?
+            objectOutputStream.writeObject(rejectPacket);
+            objectOutputStream.flush();
+          } else {
+
+            // Ask the user if they want to attach the remote router
+            System.out.println("received HELLO from " + packet.srcIP + ";");
+            
+            // User has two options : Y or N, but ask again if the user inputs something else
+            System.out.println("Do you accept this request? (Y/N)");
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            String response = br.readLine();
+            while (!response.equals("Y") && !response.equals("N")) {
+              System.out.println("Invalid input. Please enter Y or N");
+              response = br.readLine();
+            }
+            // if user answers Y, then attach the remote router
+            if (response.equals("Y")) {
+              // if we accept and there is a port available, then we attach the remote router and this is a thread
+              RouterDescription remoteRouter = new RouterDescription();
+              remoteRouter.processIPAddress = packet.srcProcessIP;
+              remoteRouter.processPortNumber = packet.srcProcessPort;
+              remoteRouter.simulatedIPAddress = packet.srcIP;
+              ports[port] = new Link(rd, remoteRouter);
+              LinkService linkService = new LinkService(ports[port]);
+              portThreads[port] = new Thread(linkService);
+
+              // send SOSPF packet with ACCEPT HELLO type
+              SOSPFPacket acceptPacket = new SOSPFPacket();
+              acceptPacket.sospfType = 3; // We need to put the other fields, but this is just for testing
+              objectOutputStream.writeObject(acceptPacket);
+              objectOutputStream.flush();
+            } else {
+              System.out.println("You rejected the attach request;");
+              // send SOSPF packet with REJECT HELLO type
+              SOSPFPacket rejectPacket = new SOSPFPacket();
+              rejectPacket.sospfType = 2; // No need to put other fields?
+              objectOutputStream.writeObject(rejectPacket);
+              objectOutputStream.flush();
+            }
           }
         }
       }
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
-      System.out.println("Closing the server socket");
+      
     }
   }
 
