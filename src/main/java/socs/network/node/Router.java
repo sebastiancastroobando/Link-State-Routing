@@ -27,6 +27,8 @@ public class Router {
   Link[] ports = new Link[4];
   // We need 4 ports for each router, so we need to keep track of the ports that are being used
   Thread[] portThreads = new Thread[4];
+  // Request handler thread
+  Thread requestHandlerThread;
 
 
   // Helper methods -----------------------------------------------------------
@@ -206,6 +208,17 @@ public class Router {
     } finally {
       
     }
+  }
+
+  public void start() {
+    // Start the request handler thread
+    requestHandlerThread = new Thread(new Runnable() {
+      public void run() {
+        requestHandler();
+      }
+    });
+    // Here we can do some checks to see if the thread is alive and more!
+    requestHandlerThread.start();
   }
 
   /**
