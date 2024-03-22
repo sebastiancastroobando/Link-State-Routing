@@ -142,7 +142,7 @@ public class Router {
 
       
 
-      while(true) {
+      //while(true) {
         // Server is the remote (or neighbor) router
         SOSPFPacket msgFromServer = (SOSPFPacket) objectInputStream.readObject();
         if (msgFromServer.sospfType == 2) {
@@ -151,13 +151,13 @@ public class Router {
             objectInputStream.close();
             objectOutputStream.close();
             socket.close();
-            break;
         } else if (msgFromServer.sospfType == 3) {
             // ACCEPTED
             addLink(processIP, processPort, simulatedIP, port);
             System.out.println("ACCEPTED");
+
         }
-      }
+      //}
 
 
 
