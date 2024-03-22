@@ -31,6 +31,10 @@ public class Router {
   Thread requestHandlerThread;
   boolean routerOnline;
 
+  private volatile String userAnswer = "";
+  private volatile boolean attachmentInProgess = false;
+  private Object attachLock = new Object();
+
   // Helper methods -----------------------------------------------------------
   
   // get available port
@@ -140,27 +144,20 @@ public class Router {
       //bufferedReader = new BufferedReader(inputStreamReader);
       //bufferedWriter = new BufferedWriter(outputStreamWriter);
 
-      
+      SOSPFPacket msgFromServer = (SOSPFPacket) objectInputStream.readObject();
+      if (msgFromServer.sospfType == 2) {
+        // REJECTED
+        System.out.println("Connection rejected");
+        objectInputStream.close();
+        objectOutputStream.close();
+        socket.close();
+      } 
+      else if (msgFromServer.sospfType == 3) {
+        // ACCEPTED
+        addLink(processIP, processPort, simulatedIP, port);
+        System.out.println("ACCEPTED");
 
-      //while(true) {
-        // Server is the remote (or neighbor) router
-        SOSPFPacket msgFromServer = (SOSPFPacket) objectInputStream.readObject();
-        if (msgFromServer.sospfType == 2) {
-            // REJECTED
-            System.out.println("Connection rejected");
-            objectInputStream.close();
-            objectOutputStream.close();
-            socket.close();
-        } else if (msgFromServer.sospfType == 3) {
-            // ACCEPTED
-            addLink(processIP, processPort, simulatedIP, port);
-            System.out.println("ACCEPTED");
-
-        }
-      //}
-
-
-
+      }
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
@@ -188,72 +185,57 @@ public class Router {
         // Note that accept is "blocking" and will wait for a connection to be made.
         // only one connection can be made at a time.
         socket = serverSocket.accept();
-        //System.out.println("ATTACHED");
         ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
-        //System.out.println("past input stream");
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
         packet = (SOSPFPacket) objectInputStream.readObject();
 
 
-        System.out.println("received attach request from " + packet.srcIP + ";");
+        System.out.println("\nReceived attach request from " + packet.srcIP + ";");
 
-        //if (packet.sospfType == 0) {
-        // First, check if the we have space in ports array
         int port = getAvailablePort();
-        //port = -1;
         if (port == -1) {
-            // No ports available means that we don't have to ask the user if they want to attach the remote router
+          // No ports available means that we don't have to ask the user if they want to attach the remote router
+          // send SOSPF packet with REJECT HELLO type
+          SOSPFPacket rejectPacket = new SOSPFPacket();
+          rejectPacket.sospfType = 2; // No need to put other fields?
+          objectOutputStream.writeObject(rejectPacket);
+          objectOutputStream.flush();
+          socket.getOutputStream().close();
+          socket.close();
+        } 
+        else {
+          System.out.print("Do you accept this request? (Y/N)\n>> ");
+          synchronized(attachLock) {
+            attachmentInProgess = true;
+            attachLock.wait();
+          }
+          // if user answers Y, then attach the remote router
+          if (userAnswer.equals("Y")) {
+            // if we accept and there is a port available, then we attach the remote router and this is a thread
+            /*RouterDescription remoteRouter = new RouterDescription();
+            remoteRouter.processIPAddress = packet.srcProcessIP;
+            remoteRouter.processPortNumber = packet.srcProcessPort;
+            remoteRouter.simulatedIPAddress = packet.srcIP; 
+            
+            ports[port] = new Link(rd, remoteRouter); */
+            addLink(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, port);
+            //LinkService linkService = new LinkService(ports[port]);
+            //portThreads[port] = new Thread(linkService);
+
+            // send SOSPF packet with ACCEPT HELLO type
+            SOSPFPacket acceptPacket = new SOSPFPacket();
+            acceptPacket.sospfType = 3; // We need to put the other fields, but this is just for testing
+            objectOutputStream.writeObject(acceptPacket);
+            objectOutputStream.flush();
+          } 
+          else {
             // send SOSPF packet with REJECT HELLO type
             SOSPFPacket rejectPacket = new SOSPFPacket();
             rejectPacket.sospfType = 2; // No need to put other fields?
             objectOutputStream.writeObject(rejectPacket);
             objectOutputStream.flush();
-            // close socket
-            //socket.getInputStream().close();
-            socket.getOutputStream().close();
-            socket.close();
-          } else {
-
-            // Ask the user if they want to attach the remote router
-            //System.out.println("received attach request from " + packet.srcIP + ";");
-            
-            // User has two options : Y or N, but ask again if the user inputs something else
-            System.out.println("Do you accept this request? (Y/N)");
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            String response = br.readLine();
-            while (!response.equals("Y") && !response.equals("N")) {
-              System.out.println("Invalid input. Please enter Y or N");
-              response = br.readLine();
-            }
-            // if user answers Y, then attach the remote router
-            if (response.equals("Y")) {
-              // if we accept and there is a port available, then we attach the remote router and this is a thread
-              /*RouterDescription remoteRouter = new RouterDescription();
-              remoteRouter.processIPAddress = packet.srcProcessIP;
-              remoteRouter.processPortNumber = packet.srcProcessPort;
-              remoteRouter.simulatedIPAddress = packet.srcIP;
-              
-              ports[port] = new Link(rd, remoteRouter);*/
-              addLink(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, port);
-              System.out.println("ATTACHED");
-              //LinkService linkService = new LinkService(ports[port]);
-              //portThreads[port] = new Thread(linkService);
-
-              // send SOSPF packet with ACCEPT HELLO type
-              SOSPFPacket acceptPacket = new SOSPFPacket();
-              acceptPacket.sospfType = 3; // We need to put the other fields, but this is just for testing
-              objectOutputStream.writeObject(acceptPacket);
-              objectOutputStream.flush();
-            } else {
-              System.out.println("You rejected the attach request;");
-              // send SOSPF packet with REJECT HELLO type
-              SOSPFPacket rejectPacket = new SOSPFPacket();
-              rejectPacket.sospfType = 2; // No need to put other fields?
-              objectOutputStream.writeObject(rejectPacket);
-              objectOutputStream.flush();
-            }
-          }
-        //}
+          } 
+        }
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -339,7 +321,24 @@ public class Router {
         } else if (command.equals("neighbors")) {
           //output neighbors
           processNeighbors();
-        } else {
+        } else if (command.equals("attachInProgress")) {
+          System.out.println("We got here!");
+        } 
+        else if (command.equals("Y") || command.equals("N")) {
+          // notify the requestHandler function
+          if (attachmentInProgess) {
+            synchronized(attachLock) {
+              userAnswer = command;
+              attachLock.notifyAll();
+              if (command.equals("N")) {
+                System.out.print("You rejected the attach request;\n");
+              }
+            }
+          } else {
+            System.out.println("Invalid argument");
+          }
+        }
+        else {
           System.out.println("Invalid argument");
         }
         System.out.print(">> ");
