@@ -29,7 +29,7 @@ public class Router {
   Thread[] portThreads = new Thread[4];
   // Request handler thread
   Thread requestHandlerThread;
-
+  boolean routerOnline;
 
   // Helper methods -----------------------------------------------------------
   
@@ -52,6 +52,10 @@ public class Router {
     rd.processIPAddress = config.getString("socs.network.router.processIP");
     rd.processPortNumber = Short.parseShort(config.getString("socs.network.router.processPort"));
     lsd = new LinkStateDatabase(rd);
+    routerOnline = true;
+    System.out.println("Simulated IP: " + rd.simulatedIPAddress);
+    System.out.println("Process IP: " + rd.processIPAddress);
+    System.out.println("Process Port Number: " + rd.processPortNumber);
   }
 
   /**
@@ -145,10 +149,11 @@ public class Router {
 
     try {
       serverSocket = new ServerSocket(rd.processPortNumber);
-      while (true) {
+      while (routerOnline) {
         // Note that accept is "blocking" and will wait for a connection to be made.
         // only one connection can be made at a time.
         socket = serverSocket.accept();
+        System.out.println("ATTACHED");
         ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
         packet = (SOSPFPacket) objectInputStream.readObject();
@@ -249,7 +254,12 @@ public class Router {
    * disconnect with all neighbors and quit the program
    */
   private void processQuit() {
-
+    routerOnline = false;
+    try {
+        requestHandlerThread.join();
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
   }
 
   public void terminal() {
@@ -267,7 +277,9 @@ public class Router {
           processDisconnect(Short.parseShort(cmdLine[1]));
         } else if (command.startsWith("quit")) {
           processQuit();
+          break;
         } else if (command.startsWith("attach ")) {
+
           String[] cmdLine = command.split(" ");
           processAttach(cmdLine[1], Short.parseShort(cmdLine[2]),
                   cmdLine[3] );
@@ -281,8 +293,7 @@ public class Router {
           //output neighbors
           processNeighbors();
         } else {
-          //invalid command
-          break;
+          System.out.println("Invalid argument");
         }
         System.out.print(">> ");
         command = br.readLine();
