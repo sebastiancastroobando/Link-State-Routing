@@ -24,4 +24,4 @@
 ---
 ## To-Dos
 - [x] Ask on ED about the routerID and how it's supposed to be used. 
-- [ ] Based on scheme one Sebastian do requestHandler and Denis do attach.
+- [x] Based on scheme one Sebastian do requestHandler and Denis do attach.

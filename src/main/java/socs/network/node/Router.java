@@ -15,6 +15,7 @@ import java.io.OutputStreamWriter;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
 import java.io.InputStream;
 
 public class Router {
@@ -174,7 +175,7 @@ public class Router {
   private void requestHandler() {
     // Define the server socket
     ServerSocket serverSocket = null;
-    Socket socket = null;
+    //Socket socket = null;
 
     // We will receive a SOSPFPacket from the remote router
     SOSPFPacket packet = null;
@@ -182,9 +183,22 @@ public class Router {
     try {
       serverSocket = new ServerSocket(rd.processPortNumber);
       while (routerOnline) {
+        Socket socket = null;
         // Note that accept is "blocking" and will wait for a connection to be made.
         // only one connection can be made at a time.
-        socket = serverSocket.accept();
+        serverSocket.setSoTimeout(1000);
+        while (socket == null) {
+            try {
+                socket = serverSocket.accept();
+            } catch (SocketTimeoutException e) {
+                if (!routerOnline) {
+                    System.out.println("ROUTER NOT ONLINE");
+                    serverSocket.close();
+                    return;
+                }
+                continue;
+            }
+        }
         ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
         packet = (SOSPFPacket) objectInputStream.readObject();
