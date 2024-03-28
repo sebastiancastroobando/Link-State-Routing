@@ -30,7 +30,6 @@ public class Router {
   Thread[] portThreads = new Thread[4];
   // Request handler thread
   Thread requestHandlerThread;
-  boolean routerOnline;
 
   private volatile String userAnswer = "";
   private volatile boolean attachmentInProgess = false;
@@ -67,7 +66,6 @@ public class Router {
     rd.processIPAddress = config.getString("socs.network.router.processIP");
     rd.processPortNumber = Short.parseShort(config.getString("socs.network.router.processPort"));
     lsd = new LinkStateDatabase(rd);
-    routerOnline = true;
     //System.out.println("Simulated IP: " + rd.simulatedIPAddress);
     System.out.println("To attach to this router, run: attach " + rd.processIPAddress + " " + rd.processPortNumber + " " + rd.simulatedIPAddress);
     //System.out.println("Process Port Number: " + rd.processPortNumber);
@@ -182,7 +180,7 @@ public class Router {
 
     try {
       serverSocket = new ServerSocket(rd.processPortNumber);
-      while (routerOnline) {
+      while (!Thread.currentThread().isInterrupted()) {
         Socket socket = null;
         // Note that accept is "blocking" and will wait for a connection to be made.
         // only one connection can be made at a time.
@@ -191,7 +189,7 @@ public class Router {
             try {
                 socket = serverSocket.accept();
             } catch (SocketTimeoutException e) {
-                if (!routerOnline) {
+                if (Thread.currentThread().isInterrupted()) {
                     System.out.println("ROUTER NOT ONLINE");
                     serverSocket.close();
                     return;
@@ -297,11 +295,11 @@ public class Router {
    * disconnect with all neighbors and quit the program
    */
   private void processQuit() {
-    routerOnline = false;
     try {
+        requestHandlerThread.interrupt();
         requestHandlerThread.join();
     } catch (InterruptedException e) {
-        e.printStackTrace();
+        return;
     }
   }
 
