@@ -30,6 +30,8 @@ public class Router {
   Thread[] portThreads = new Thread[4];
   // Request handler thread
   Thread requestHandlerThread;
+  // Array of active sockets
+  Socket[] sockets = new Socket[4];
 
   private volatile String userAnswer = "";
   private volatile boolean attachmentInProgess = false;
@@ -212,6 +214,7 @@ public class Router {
           rejectPacket.sospfType = 2; // No need to put other fields?
           objectOutputStream.writeObject(rejectPacket);
           objectOutputStream.flush();
+          socket.getInputStream().close();
           socket.getOutputStream().close();
           socket.close();
         } 
