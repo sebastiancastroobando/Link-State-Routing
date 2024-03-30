@@ -310,6 +310,27 @@ public class Router {
       System.out.print(">> ");
       String command = br.readLine();
       while (true) {
+         // We need to check if the user is trying to attach a router
+         if (attachmentInProgess) {
+          synchronized(attachLock) {
+            if (command.equals("Y")) {
+              System.out.print("You accepted the attach request;\n");
+              userAnswer = command;
+              attachLock.notifyAll();
+              attachmentInProgess = false;
+            } else if (command.equals("N")) {
+              userAnswer = command;
+              attachLock.notifyAll();
+              System.out.print("You rejected the attach request;\n");
+              attachmentInProgess = false;
+            } else {
+              System.out.print("Invalid argument\n");
+            }
+          }
+          System.out.print(">> ");
+          command = br.readLine();
+          continue;
+        }
         if (command.startsWith("detect ")) {
           String[] cmdLine = command.split(" ");
           processDetect(cmdLine[1]);
@@ -333,22 +354,6 @@ public class Router {
         } else if (command.equals("neighbors")) {
           //output neighbors
           processNeighbors();
-        } else if (command.equals("attachInProgress")) {
-          System.out.println("We got here!");
-        } 
-        else if (command.equals("Y") || command.equals("N")) {
-          // notify the requestHandler function
-          if (attachmentInProgess) {
-            synchronized(attachLock) {
-              userAnswer = command;
-              attachLock.notifyAll();
-              if (command.equals("N")) {
-                System.out.print("You rejected the attach request;\n");
-              }
-            }
-          } else {
-            System.out.println("Invalid argument");
-          }
         }
         else {
           System.out.println("Invalid argument");
