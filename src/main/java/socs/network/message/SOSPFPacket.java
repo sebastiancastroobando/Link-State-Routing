@@ -15,7 +15,7 @@ public class SOSPFPacket implements Serializable {
   public String dstIP;
 
   //common header
-  public short sospfType; //0 - HELLO, 1 - LinkState Update, 2 - REJECT HELLO, 3 - ACCEPT HELLO
+  public short sospfType; //0 - HELLO, 1 - LinkState Update, 2 - REJECT HELLO, 3 - ACCEPT HELLO. 4 - QUIT
   public String routerID;
 
   //used by HELLO message to identify the sender of the message
@@ -26,4 +26,14 @@ public class SOSPFPacket implements Serializable {
   //used by LSAUPDATE
   public Vector<LSA> lsaArray = null;
 
+  public SOSPFPacket() {}
+
+  public SOSPFPacket(String srcProcessIP, short srcProcessPort, String srcIP, String dstIP) {
+    this.srcProcessIP = srcProcessIP;
+    this.srcProcessPort = srcProcessPort;
+    this.srcIP = srcIP;
+    this.dstIP = dstIP;
+    this.routerID = srcIP;
+    this.neighborID = dstIP;
+  }
 }
