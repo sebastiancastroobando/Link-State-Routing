@@ -25,7 +25,7 @@ public class Router {
   RouterDescription rd = new RouterDescription();
 
   //assuming that all routers are with 4 ports
-  Link[] ports = new Link[4];
+  LinkService[] linkServices = new LinkService[4];
   // We need 4 ports for each router, so we need to keep track of the ports that are being used
   Thread[] portThreads = new Thread[4];
   // Request handler thread
@@ -41,22 +41,46 @@ public class Router {
   private int getAvailablePort() {
     // Since we keep a reference to the threads, could we actually check if the thread is alive?
     // then we could check if the port is available... trying to avoid race conditions...
-    for (int i = 0; i < ports.length; i++) {
-      if (ports[i] == null) {
-        return i;
+    int ret = -1;
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        ret = i;
+        break;
+      } else if (linkServices[i].link == null) {
+        linkServices[i] = null;
+        ret = i;
+        break;
       }
     }
-    return -1;
+    if (ret != -1 && portThreads[ret] != null) {
+      try {
+        portThreads[ret].interrupt();
+        portThreads[ret].join();
+      } catch (InterruptedException e) {
+      }
+    }
+    return ret;
   }
 
   // add link method
-  private void addLink(String processIP, short processPort, String simIP, int port, Socket socket, ObjectInputStream in, ObjectOutputStream out) {
+  private LinkService addLinkService(String processIP, short processPort, String simIP, int port, Socket socket, ObjectInputStream in, ObjectOutputStream out) {
     RouterDescription remoteRouter = new RouterDescription();
     remoteRouter.processIPAddress = processIP;
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    ports[port] = new Link(rd, remoteRouter, socket, in, out);
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out));
+    return linkServices[port];
+  }
+
+  // updates linkServices if need be, upon get
+  private LinkService getLinkService(int index) {
+    LinkService ls = linkServices[index];
+    if (ls != null && ls.link == null) {
+      linkServices[index] = null;
+      ls = null;
+    }
+    return ls;
   }
 
   // --------------------------------------------------------------------------
@@ -103,15 +127,15 @@ public class Router {
     // First create packet to send to the remote router
     SOSPFPacket packet = new SOSPFPacket();
     
-    packet.srcProcessIP = rd.processIPAddress;
-    packet.srcProcessPort = rd.processPortNumber;
+    //packet.srcProcessIP = rd.processIPAddress;
+    //packet.srcProcessPort = rd.processPortNumber;
     
-    packet.srcIP = rd.processIPAddress;
-    packet.dstIP = processIP;
+    //packet.srcIP = rd.simulatedIPAddress;
+    //packet.dstIP = simulatedIP;
     
     packet.sospfType = 0;
-    packet.routerID = rd.simulatedIPAddress;
-    packet.neighborID = simulatedIP;
+    //packet.routerID = rd.simulatedIPAddress;
+    //packet.neighborID = simulatedIP;
 
     // Socket and buffer definition
     /*Socket socket = null;
@@ -153,7 +177,7 @@ public class Router {
       } 
       else if (msgFromServer.sospfType == 3) {
         // ACCEPTED
-        addLink(processIP, processPort, simulatedIP, port, socket, in, out);
+        addLinkService(processIP, processPort, simulatedIP, port, socket, in, out);
         System.out.println("ACCEPTED");
 
       }
@@ -226,10 +250,10 @@ public class Router {
           if (userAnswer.equals("Y")) {
             // Request to attach accepted
             // Add link, include the socket in the link "connection"
-            addLink(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, availablePort, socket, in, out);
+            LinkService linkService = addLinkService(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, availablePort, socket, in, out);
 
             // Spawn thread for link service
-            LinkService linkService = new LinkService(ports[availablePort]);
+            //LinkService linkService = new LinkService(ports[availablePort]);
             portThreads[availablePort] = new Thread(linkService);
             portThreads[availablePort].start();
             
@@ -271,7 +295,19 @@ public class Router {
    */
   private void processStart() {
     // First step, check the links available
-    for (int i = 0; i < 4)
+    for (int i = 0; i < linkServices.length; i++) {
+      LinkService cur_linkserv = getLinkService(i);
+      if (cur_linkserv == null) {
+        continue;
+      }
+      SOSPFPacket packet = new SOSPFPacket();
+      packet.sospfType = 0;
+      boolean success = cur_linkserv.send(packet);
+      if (!success) {
+        cur_linkserv.closeConnection();
+        linkServices[i] = null;
+      }
+    }
   }
 
   /**
@@ -296,6 +332,27 @@ public class Router {
    */
   private void processQuit() {
     try {
+        for (int i = 0; i < linkServices.length; i++) {
+          LinkService cur_linkserv = getLinkService(i);
+          if (cur_linkserv == null) {
+            continue;
+          }
+          SOSPFPacket packet = new SOSPFPacket();
+          // send QUIT message - this router is shutting down
+          packet.sospfType = 4;
+          cur_linkserv.send(packet);
+          cur_linkserv.closeConnection();
+          linkServices[i] = null;
+        }
+
+        for (int i = 0; i < portThreads.length; i++) {
+          Thread cur_thread = portThreads[i];
+          if (cur_thread == null) {
+            continue;
+          }
+          cur_thread.interrupt();
+          cur_thread.join();
+        }
         requestHandlerThread.interrupt();
         requestHandlerThread.join();
     } catch (InterruptedException e) {
