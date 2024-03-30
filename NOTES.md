@@ -23,5 +23,6 @@
 
 ---
 ## To-Dos
-- [x] Ask on ED about the routerID and how it's supposed to be used. 
-- [x] Based on scheme one Sebastian do requestHandler and Denis do attach.
+- [ ] Add tutorial behaviour of start
+- [ ] Fix shared linkServices/portThreads references to avoid SocketException on LinkService.send() and Link.out.close()
+- [ ] Do first half of disconnect
