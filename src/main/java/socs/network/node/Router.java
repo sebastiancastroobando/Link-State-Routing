@@ -30,8 +30,6 @@ public class Router {
   Thread[] portThreads = new Thread[4];
   // Request handler thread
   Thread requestHandlerThread;
-  // Array of active sockets
-  Socket[] sockets = new Socket[4];
 
   private volatile String userAnswer = "";
   private volatile boolean attachmentInProgess = false;
@@ -52,13 +50,13 @@ public class Router {
   }
 
   // add link method
-  private void addLink(String processIP, short processPort, String simIP, int port) {
+  private void addLink(String processIP, short processPort, String simIP, int port, Socket socket, ObjectInputStream in, ObjectOutputStream out) {
     RouterDescription remoteRouter = new RouterDescription();
     remoteRouter.processIPAddress = processIP;
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    ports[port] = new Link(rd, remoteRouter);
+    ports[port] = new Link(rd, remoteRouter, socket, in, out);
   }
 
   // --------------------------------------------------------------------------
@@ -134,28 +132,28 @@ public class Router {
       //System.out.println("ACCEPTED");
       // Read from the server and output to the server
       InputStream input = socket.getInputStream();
-      ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-      ObjectInputStream objectInputStream = new ObjectInputStream(input);
+      ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+      ObjectInputStream in = new ObjectInputStream(input);
 
-      objectOutputStream.writeObject(packet);
-      objectOutputStream.flush();
+      out.writeObject(packet);
+      out.flush();
       //ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
       //System.out.println("TWO");
 
       //bufferedReader = new BufferedReader(inputStreamReader);
       //bufferedWriter = new BufferedWriter(outputStreamWriter);
 
-      SOSPFPacket msgFromServer = (SOSPFPacket) objectInputStream.readObject();
+      SOSPFPacket msgFromServer = (SOSPFPacket) in.readObject();
       if (msgFromServer.sospfType == 2) {
         // REJECTED
         System.out.println("Connection rejected");
-        objectInputStream.close();
-        objectOutputStream.close();
+        in.close();
+        out.close();
         socket.close();
       } 
       else if (msgFromServer.sospfType == 3) {
         // ACCEPTED
-        addLink(processIP, processPort, simulatedIP, port);
+        addLink(processIP, processPort, simulatedIP, port, socket, in, out);
         System.out.println("ACCEPTED");
 
       }
@@ -199,21 +197,21 @@ public class Router {
                 continue;
             }
         }
-        ObjectInputStream objectInputStream = new ObjectInputStream(socket.getInputStream());
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-        packet = (SOSPFPacket) objectInputStream.readObject();
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+        packet = (SOSPFPacket) in.readObject();
 
 
         System.out.println("\nReceived attach request from " + packet.srcIP + ";");
 
-        int port = getAvailablePort();
-        if (port == -1) {
+        int availablePort = getAvailablePort();
+        if (availablePort == -1) {
           // No ports available means that we don't have to ask the user if they want to attach the remote router
           // send SOSPF packet with REJECT HELLO type
           SOSPFPacket rejectPacket = new SOSPFPacket();
           rejectPacket.sospfType = 2; // No need to put other fields?
-          objectOutputStream.writeObject(rejectPacket);
-          objectOutputStream.flush();
+          out.writeObject(rejectPacket);
+          out.flush();
           socket.getInputStream().close();
           socket.getOutputStream().close();
           socket.close();
@@ -226,29 +224,27 @@ public class Router {
           }
           // if user answers Y, then attach the remote router
           if (userAnswer.equals("Y")) {
-            // if we accept and there is a port available, then we attach the remote router and this is a thread
-            /*RouterDescription remoteRouter = new RouterDescription();
-            remoteRouter.processIPAddress = packet.srcProcessIP;
-            remoteRouter.processPortNumber = packet.srcProcessPort;
-            remoteRouter.simulatedIPAddress = packet.srcIP; 
-            
-            ports[port] = new Link(rd, remoteRouter); */
-            addLink(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, port);
-            //LinkService linkService = new LinkService(ports[port]);
-            //portThreads[port] = new Thread(linkService);
+            // Request to attach accepted
+            // Add link, include the socket in the link "connection"
+            addLink(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, availablePort, socket, in, out);
 
+            // Spawn thread for link service
+            LinkService linkService = new LinkService(ports[availablePort]);
+            portThreads[availablePort] = new Thread(linkService);
+            portThreads[availablePort].start();
+            
             // send SOSPF packet with ACCEPT HELLO type
             SOSPFPacket acceptPacket = new SOSPFPacket();
             acceptPacket.sospfType = 3; // We need to put the other fields, but this is just for testing
-            objectOutputStream.writeObject(acceptPacket);
-            objectOutputStream.flush();
+            out.writeObject(acceptPacket);
+            out.flush();
           } 
           else {
             // send SOSPF packet with REJECT HELLO type
             SOSPFPacket rejectPacket = new SOSPFPacket();
             rejectPacket.sospfType = 2; // No need to put other fields?
-            objectOutputStream.writeObject(rejectPacket);
-            objectOutputStream.flush();
+            out.writeObject(rejectPacket);
+            out.flush();
           } 
         }
       }
@@ -274,7 +270,8 @@ public class Router {
    * broadcast Hello to neighbors
    */
   private void processStart() {
-
+    // First step, check the links available
+    for (int i = 0; i < 4)
   }
 
   /**
