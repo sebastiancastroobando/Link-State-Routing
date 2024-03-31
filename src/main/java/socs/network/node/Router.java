@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
+import java.sql.Time;
 
 public class Router {
 
@@ -31,10 +32,21 @@ public class Router {
   private Object attachLock = new Object();
 
   // Helper methods -----------------------------------------------------------
+
+  private void closeSeveredConnections() {
+    // link thread close themselves, so we just need to check if the link is null
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] != null && linkServices[i].link == null) {
+        linkServices[i] = null;
+      }
+    }
+  }
   
   // get available port
   private int getAvailablePort() {
-    // Since we keep a reference to the threads, could we actually check if the thread is alive?
+    // First step is to close any severe connections
+    closeSeveredConnections();
+
     // then we could check if the port is available... trying to avoid race conditions...
     int ret = -1;
     for (int i = 0; i < linkServices.length; i++) {
@@ -97,7 +109,33 @@ public class Router {
    * @param portNumber the port number which the link attaches at
    */
   private void processDisconnect(short portNumber) {
-
+    // Check if the port number is valid
+    if (portNumber < 0 || portNumber >= linkServices.length) {
+      System.out.println("DISCONNECT ERROR: Invalid port number;");
+      return;
+    }
+    // Check if the link service is initialized
+    if (linkServices[portNumber] == null) {
+      System.out.println("DISCONNECT ERROR: No link service at port " + portNumber + ";");
+      return;
+    }
+    
+    // Send QUIT message to the target router
+    SOSPFPacket quitPacket = new SOSPFPacket();
+    quitPacket.sospfType = 5; // QUIT type
+    quitPacket.srcIP = rd.simulatedIPAddress;
+    linkServices[portNumber].send(quitPacket);
+    // Close the connection
+    portThreads[portNumber].interrupt();
+    try {
+      portThreads[portNumber].join();
+    } catch (InterruptedException e) {
+      // Do nothing
+    }
+    linkServices[portNumber].closeConnection();
+    // Remove the link service
+    linkServices[portNumber] = null;
+    portThreads[portNumber] = null;
   }
 
   /**
@@ -210,7 +248,7 @@ public class Router {
         int availablePort = getAvailablePort();
         if (availablePort == -1) {
           // Inform the user that there are no available ports
-          System.out.println("Rejecting attach request from " + requestPacket.srcIP + " due to no available ports;\n>> ");
+          System.out.print("Rejecting attach request from " + requestPacket.srcIP + " due to no available ports;\n>> ");
           // No available ports, reject the request
           SOSPFPacket rejectPacket = new SOSPFPacket();
           rejectPacket.sospfType = 3;
@@ -315,6 +353,14 @@ public class Router {
       System.out.println("Connection failed: Can't connect to itself;");
       return;
     }
+
+    // check if we have available ports
+    int availablePort = getAvailablePort();
+    if (availablePort == -1) {
+      System.out.println("Connection failed: No available ports;");
+      return;
+    }
+
     // First attach the router
     System.out.println("Attaching to " + simulatedIP + ". Waiting for response...");
     int portUsed = processAttach(processIP, processPort, simulatedIP);
@@ -345,6 +391,7 @@ public class Router {
     for (int i = 0; i < linkServices.length; i++) {
       LinkService cur_linkserv = getLinkService(i);
       if (cur_linkserv == null) {
+        System.out.println("Port " + i + " : (Free)");
         continue;
       }
       // if link status is NULL, it means it's attach but not yet initialized
@@ -361,6 +408,7 @@ public class Router {
    * disconnect with all neighbors and quit the program
    */
   private void processQuit() {
+    // TODO : change this to use the closeConnection method? 
     try {
         for (int i = 0; i < linkServices.length; i++) {
           LinkService cur_linkserv = getLinkService(i);
@@ -369,7 +417,8 @@ public class Router {
           }
           SOSPFPacket packet = new SOSPFPacket();
           // send QUIT message - this router is shutting down
-          packet.sospfType = 4;
+          packet.sospfType = 5;
+          packet.srcIP = rd.simulatedIPAddress;
           cur_linkserv.send(packet);
           cur_linkserv.closeConnection();
           linkServices[i] = null;

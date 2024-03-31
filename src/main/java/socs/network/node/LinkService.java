@@ -43,6 +43,7 @@ public class LinkService implements Runnable {
     }
 
     public void closeConnection() {
+      // The thread is blocked on the receive() method, so we need to close the connection
       if (this.link != null) {
         this.link.destroy();
         this.link = null;
@@ -83,25 +84,20 @@ public class LinkService implements Runnable {
             } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
               // Should we inform the user that the router is already in TWO_WAY?
             }
+          } else if (incomingPacket.sospfType == 5) {
+            // Inform user that the router is quitting
+            System.out.print("\nReceived QUIT from " + incomingPacket.srcIP + ". Closing connection.\n>> ");
+            // The thread has to close itself
+            closeConnection();
+            return;
+            // Close the thread itself
+          } else {
+            // We closed the connection, print for debugging
+            System.out.println("Connection severed");
           }
+        } else {
+          // Received a null packet, should we close the connection?
         }
-            /* 
-            if (incomingPacket != null) {
-                if (incomingPacket.sospfType == 2) {
-                    // LinkState hello
-                    System.out.println("We received a linkstate update request");
-                } else if (incomingPacket.sospfType == 0) {
-                    System.out.println("We recieved a hello message");
-                } else if (incomingPacket.sospfType == 5) {
-                  // QUIT
-                  break;
-                } else {
-                    System.out.println("not really important");
-                }
-            } else {
-              break;
-            }
-            */
       }
       closeConnection();
     }   
