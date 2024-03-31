@@ -7,16 +7,11 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectInput;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
-import java.io.InputStream;
 
 public class Router {
 
@@ -125,13 +120,19 @@ public class Router {
    * NOTE: this command should not trigger link database synchronization
    */
   private void processAttach(String processIP, short processPort, String simulatedIP) {
+    // Check if the simulated IP is the same as the current router
+    if (simulatedIP.equals(rd.simulatedIPAddress)) {
+      System.out.println("ATTACHMENT ERROR: Can't attach the router to itself;");
+      return;
+    }
+
     // First create packet to send to the remote router, packet type 0 is an attach request
     SOSPFPacket attachRequestPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, simulatedIP);
     
     // Check if we have available ports 
-    int port = getAvailablePort();
-    if (port == -1) {
-        System.out.println("Can't connect to more routers");
+    int availablePort = getAvailablePort();
+    if (availablePort == -1) {
+        System.out.println("ATTACHMENT ERROR: No available ports;");
         return;
     }
 
@@ -152,7 +153,11 @@ public class Router {
       SOSPFPacket msgFromServer = (SOSPFPacket) in.readObject();
       if (msgFromServer.sospfType == 1) {
         // Attach request accepted
-        addLinkService(processIP, processPort, simulatedIP, port, socket, in, out);
+        addLinkService(processIP, processPort, simulatedIP, availablePort, socket, in, out);
+        // Start the link service thread to handle incoming packets
+        portThreads[availablePort] = new Thread(linkServices[availablePort]);
+        portThreads[availablePort].start();
+
         System.out.println("Your attach request has been ACCEPTED;");
       } 
       else if (msgFromServer.sospfType == 2) {
@@ -267,6 +272,7 @@ public class Router {
     }
   }
 
+  // TODO : function name is misleading, should be startRequestHandler. Also, is there another way to start the thread?
   public void start() {
     // Start the request handler thread
     requestHandlerThread = new Thread(new Runnable() {
@@ -282,7 +288,27 @@ public class Router {
    * broadcast Hello to neighbors
    */
   private void processStart() {
-    // First step, check the links available
+    // Send HELLO message through all initialized link services
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        // Link service at this port is not initialized
+        continue;
+      }
+      // Maybe we do some checks here to see if the link service is alive and link
+
+      // Create a new HELLO packet
+      SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[i].link.targetRouter.simulatedIPAddress);
+      helloPacket.sospfType = 2; // HELLO type
+
+      // Before sending, we can already set the status of the target router to INIT
+      linkServices[i].link.targetRouter.status = RouterStatus.INIT;
+      // Send the HELLO packet, first is to confirm two way communication from this router
+      linkServices[i].send(helloPacket);
+      // Second HELLO serves as a confirmation of the two way communication
+      linkServices[i].send(helloPacket);
+    }
+
+    /*
     for (int i = 0; i < linkServices.length; i++) {
       LinkService cur_linkserv = getLinkService(i);
       if (cur_linkserv == null) {
@@ -296,6 +322,7 @@ public class Router {
         linkServices[i] = null;
       }
     }
+    */
   }
 
   /**

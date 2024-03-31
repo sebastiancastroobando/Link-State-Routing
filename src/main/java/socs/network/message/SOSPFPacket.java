@@ -22,6 +22,7 @@ public class SOSPFPacket implements Serializable {
    * sosfType = 2: HELLO
    * sosfType = 3: ACCEPT HELLO
    * sosfType = 4: QUIT
+   * sosfType = 5: LSAUPDATE
    */
   public short sospfType; 
   public String routerID;
@@ -36,6 +37,13 @@ public class SOSPFPacket implements Serializable {
 
   public SOSPFPacket() {}
 
+  /**
+   * Constructor for SOSPFPacket
+   * @param srcProcessIP real IP address of source process
+   * @param srcProcessPort real port number of source process
+   * @param srcIP simulated IP address of source router
+   * @param dstIP simulated IP address of destination router
+   */
   public SOSPFPacket(String srcProcessIP, short srcProcessPort, String srcIP, String dstIP) {
     this.srcProcessIP = srcProcessIP;
     this.srcProcessPort = srcProcessPort;
