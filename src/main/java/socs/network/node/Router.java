@@ -119,11 +119,11 @@ public class Router {
    * <p/>
    * NOTE: this command should not trigger link database synchronization
    */
-  private void processAttach(String processIP, short processPort, String simulatedIP) {
+  private int processAttach(String processIP, short processPort, String simulatedIP) {
     // Check if the simulated IP is the same as the current router
     if (simulatedIP.equals(rd.simulatedIPAddress)) {
       System.out.println("ATTACHMENT ERROR: Can't attach the router to itself;");
-      return;
+      return -1;
     }
 
     // First create packet to send to the remote router, packet type 0 is an attach request
@@ -133,7 +133,7 @@ public class Router {
     int availablePort = getAvailablePort();
     if (availablePort == -1) {
         System.out.println("ATTACHMENT ERROR: No available ports;");
-        return;
+        return -1;
     }
 
     try {
@@ -159,6 +159,7 @@ public class Router {
         portThreads[availablePort].start();
 
         System.out.println("Your attach request has been ACCEPTED;");
+        return availablePort;
       } 
       else if (msgFromServer.sospfType == 2) {
         // Attach request rejected
@@ -166,10 +167,12 @@ public class Router {
         out.close();
         socket.close();
         System.out.println("Your attach request has been REJECTED;");
+        return -1;
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
+    return -1;
   }
 
 
@@ -308,22 +311,7 @@ public class Router {
       // Send the HELLO packet, first is to confirm two way communication from this router
       linkServices[i].send(helloPacket);
     }
-
-    /*
-    for (int i = 0; i < linkServices.length; i++) {
-      LinkService cur_linkserv = getLinkService(i);
-      if (cur_linkserv == null) {
-        continue;
-      }
-      SOSPFPacket packet = new SOSPFPacket();
-      packet.sospfType = 0;
-      boolean success = cur_linkserv.send(packet);
-      if (!success) {
-        cur_linkserv.closeConnection();
-        linkServices[i] = null;
-      }
-    }
-    */
+    // TODO : link database synchronization
   }
 
   /**
@@ -333,14 +321,43 @@ public class Router {
    * This command does trigger the link database synchronization
    */
   private void processConnect(String processIP, short processPort, String simulatedIP) {
-   
+    // check if we are trying to connect to ourselves
+    if (simulatedIP.equals(rd.simulatedIPAddress)) {
+      System.out.println("Connection failed: Can't connect to itself;");
+      return;
+    }
+    // First attach the router
+    System.out.println("Attaching to " + simulatedIP + ". Waiting for response...");
+    int portUsed = processAttach(processIP, processPort, simulatedIP);
+    if (portUsed == -1) {
+      System.out.println("Connection failed;");
+      return;
+    }
+    // Then start the router
+    System.out.println("Starting link connection...");
+    // TODO: should we start all connections or just the one we just attached? If so, we can just call processStart()
+    processStart();
+    // TODO : link database synchronization (but we will do it in the attach method, so?)
   }
 
   /**
    * output the neighbors of the routers
    */
   private void processNeighbors() {
-
+    // Output the list of all the neighbors (set to TWO_WAY)
+    for (int i = 0; i < linkServices.length; i++) {
+      LinkService cur_linkserv = getLinkService(i);
+      if (cur_linkserv == null) {
+        continue;
+      }
+      // if link status is NULL, it means it's attach but not yet initialized
+      if (cur_linkserv.link.targetRouter.status == null) {
+        System.out.println("Port " + i + " : " + cur_linkserv.link.targetRouter.simulatedIPAddress + " (Attached, but not initialized)");
+        continue;
+      } else {
+        System.out.println("Port " + i + " : " + cur_linkserv.link.targetRouter.simulatedIPAddress + " (" + cur_linkserv.link.targetRouter.status + ")");
+      }
+    }
   }
 
   /**
@@ -397,7 +414,7 @@ public class Router {
               System.out.print("You rejected the attach request;\n");
               attachmentInProgess = false;
             } else {
-              System.out.print("Invalid argument\n");
+              System.out.print("Invalid argument. Please answer with \"Y\" or \"N\"\n");
             }
           }
           System.out.print(">> ");
@@ -414,13 +431,12 @@ public class Router {
           processQuit();
           break;
         } else if (command.startsWith("attach ")) {
-
           String[] cmdLine = command.split(" ");
           processAttach(cmdLine[1], Short.parseShort(cmdLine[2]),
                   cmdLine[3] );
         } else if (command.equals("start")) {
           processStart();
-        } else if (command.equals("connect ")) {
+        } else if (command.startsWith("connect ")) {
           String[] cmdLine = command.split(" ");
           processConnect(cmdLine[1], Short.parseShort(cmdLine[2]),
                   cmdLine[3]);

@@ -82,28 +82,10 @@ public class LinkService implements Runnable {
               this.send(helloPacket);
             } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
               // Should we inform the user that the router is already in TWO_WAY?
-
             }
           }
         }
-            /* 
-            if (incomingPacket != null) {
-                if (incomingPacket.sospfType == 2) {
-                    // LinkState hello
-                    System.out.println("We received a linkstate update request");
-                } else if (incomingPacket.sospfType == 0) {
-                    System.out.println("We recieved a hello message");
-                } else if (incomingPacket.sospfType == 5) {
-                  // QUIT
-                  break;
-                } else {
-                    System.out.println("not really important");
-                }
-            } else {
-              break;
-            }
-            */
-    }
-    closeConnection();
-  }
+      }
+      closeConnection();
+    }   
 }
