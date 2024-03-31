@@ -51,7 +51,7 @@ public class LinkService implements Runnable {
     }
 
     public void run() {
-      while (!Thread.currentThread().isInterrupted()) {
+      while (!Thread.currentThread().isInterrupted() && link != null) {
         SOSPFPacket incomingPacket = receive();
         if (incomingPacket != null) {
           if(incomingPacket.sospfType == 3) {

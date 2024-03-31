@@ -119,6 +119,8 @@ public class Router {
       System.out.println("DISCONNECT ERROR: No link service at port " + portNumber + ";");
       return;
     }
+
+    System.out.println("Disconnecting from " + linkServices[portNumber].link.targetRouter.simulatedIPAddress + ";");
     
     // Send QUIT message to the target router
     SOSPFPacket quitPacket = new SOSPFPacket();
@@ -408,35 +410,26 @@ public class Router {
    * disconnect with all neighbors and quit the program
    */
   private void processQuit() {
-    // TODO : change this to use the closeConnection method? 
-    try {
-        for (int i = 0; i < linkServices.length; i++) {
-          LinkService cur_linkserv = getLinkService(i);
-          if (cur_linkserv == null) {
-            continue;
-          }
-          SOSPFPacket packet = new SOSPFPacket();
-          // send QUIT message - this router is shutting down
-          packet.sospfType = 5;
-          packet.srcIP = rd.simulatedIPAddress;
-          cur_linkserv.send(packet);
-          cur_linkserv.closeConnection();
-          linkServices[i] = null;
-        }
+    // TODO : Send Link State Update to all neighbors informing them that this router is going down
 
-        for (int i = 0; i < portThreads.length; i++) {
-          Thread cur_thread = portThreads[i];
-          if (cur_thread == null) {
-            continue;
-          }
-          cur_thread.interrupt();
-          cur_thread.join();
-        }
-        requestHandlerThread.interrupt();
-        requestHandlerThread.join();
+    // First make sure that that servered connections are closed
+    closeSeveredConnections();
+    // Close all connections using the processDisconnect method for each port with a link service
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] != null) {
+        processDisconnect((short) i);
+      }
+    }
+
+    // Close the request handler thread
+    try{
+      requestHandlerThread.interrupt();
+      requestHandlerThread.join();
     } catch (InterruptedException e) {
         return;
     }
+    // Close the router
+    System.exit(0);
   }
 
   public void terminal() {
