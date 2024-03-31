@@ -53,7 +53,7 @@ public class LinkService implements Runnable {
       while (!Thread.currentThread().isInterrupted()) {
         SOSPFPacket incomingPacket = receive();
         if (incomingPacket != null) {
-          if(incomingPacket.sospfType == 2) {
+          if(incomingPacket.sospfType == 3) {
             // print status for debugging
             // System.out.println("Status of " + link.sourceRouter.simulatedIPAddress + ": " + link.sourceRouter.status);
             if(link.targetRouter.status == null) {
@@ -66,7 +66,7 @@ public class LinkService implements Runnable {
               System.out.println("Set " + incomingPacket.srcIP + " STATE to INIT");
               // Send a HELLO back
               SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
-              helloPacket.sospfType = 2;
+              helloPacket.sospfType = 3;
               this.send(helloPacket);
             } else if (link.targetRouter.status == RouterStatus.INIT) {
               // Inform user that the router has received a HELLO
@@ -78,13 +78,30 @@ public class LinkService implements Runnable {
               System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
               // Send HELLO back
               SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
-              helloPacket.sospfType = 2;
+              helloPacket.sospfType = 3;
               this.send(helloPacket);
             } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
               // Should we inform the user that the router is already in TWO_WAY?
             }
           }
         }
+            /* 
+            if (incomingPacket != null) {
+                if (incomingPacket.sospfType == 2) {
+                    // LinkState hello
+                    System.out.println("We received a linkstate update request");
+                } else if (incomingPacket.sospfType == 0) {
+                    System.out.println("We recieved a hello message");
+                } else if (incomingPacket.sospfType == 5) {
+                  // QUIT
+                  break;
+                } else {
+                    System.out.println("not really important");
+                }
+            } else {
+              break;
+            }
+            */
       }
       closeConnection();
     }   

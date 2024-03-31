@@ -41,19 +41,6 @@ public class Router {
       if (linkServices[i] == null) {
         ret = i;
         break;
-      } else if (linkServices[i].link == null) {
-        // TODO : feels weird to have to check if link is null here, let's see if there is an alternative
-        linkServices[i] = null;
-        ret = i;
-        break;
-      }
-    }
-    // getAvailablePort should not join threads, its purpose is to check if a port is available
-    if (ret != -1 && portThreads[ret] != null) {
-      try {
-        portThreads[ret].interrupt();
-        portThreads[ret].join();
-      } catch (InterruptedException e) {
       }
     }
     return ret;
@@ -222,14 +209,16 @@ public class Router {
 
         int availablePort = getAvailablePort();
         if (availablePort == -1) {
+          // Inform the user that there are no available ports
+          System.out.println("Rejecting attach request from " + requestPacket.srcIP + " due to no available ports;\n>> ");
           // No available ports, reject the request
           SOSPFPacket rejectPacket = new SOSPFPacket();
-          rejectPacket.sospfType = 2;
+          rejectPacket.sospfType = 3;
           out.writeObject(rejectPacket);
           out.flush();
           // Close the streams and the socket
-          socket.getInputStream().close();
-          socket.getOutputStream().close();
+          in.close();
+          out.close();
           socket.close();
         } 
         else {
@@ -249,7 +238,7 @@ public class Router {
             portThreads[availablePort] = new Thread(linkService);
             portThreads[availablePort].start();
             
-            // send SOSPF packet with ACCEPT HELLO type
+            // send SOSPF packet with ACCEPT Attach type
             SOSPFPacket acceptPacket = new SOSPFPacket();
             acceptPacket.sospfType = 1; // We need to put the other fields, but this is just for testing
             out.writeObject(acceptPacket);
@@ -301,7 +290,7 @@ public class Router {
 
       // Create a new HELLO packet
       SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[i].link.targetRouter.simulatedIPAddress);
-      helloPacket.sospfType = 2; // HELLO type
+      helloPacket.sospfType = 3; // HELLO type
 
       // If the link is already set to TWO_WAY, then don't change the status to INIT
       if (linkServices[i].link.targetRouter.status != RouterStatus.TWO_WAY) {
@@ -330,14 +319,22 @@ public class Router {
     System.out.println("Attaching to " + simulatedIP + ". Waiting for response...");
     int portUsed = processAttach(processIP, processPort, simulatedIP);
     if (portUsed == -1) {
-      System.out.println("Connection failed;");
+      System.out.println("Connection failed: No available ports;");
       return;
     }
     // Then start the router
     System.out.println("Starting link connection...");
-    // TODO: should we start all connections or just the one we just attached? If so, we can just call processStart()
-    processStart();
-    // TODO : link database synchronization (but we will do it in the attach method, so?)
+    // Create a new HELLO packet
+    SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[portUsed].link.targetRouter.simulatedIPAddress);
+    helloPacket.sospfType = 3; // HELLO type
+
+    // If the link is already set to TWO_WAY, then don't change the status to INIT
+    if (linkServices[portUsed].link.targetRouter.status != RouterStatus.TWO_WAY) {
+      // Set to INIT so we expect a hello back and set to TWO_WAY
+      linkServices[portUsed].link.targetRouter.status = RouterStatus.INIT;
+    }
+    // Send the HELLO packet, first is to confirm two way communication from this router
+    linkServices[portUsed].send(helloPacket);
   }
 
   /**

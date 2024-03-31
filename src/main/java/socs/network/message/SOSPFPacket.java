@@ -19,10 +19,10 @@ public class SOSPFPacket implements Serializable {
    * sosfType = 0: Attach Request
    * sosfType = 1: Accept Attach
    * sosfType = 2: REJECT Attach
-   * sosfType = 2: HELLO
-   * sosfType = 3: ACCEPT HELLO
-   * sosfType = 4: QUIT
-   * sosfType = 5: LSAUPDATE
+   * sosfType = 3: HELLO
+   * sosfType = 4: ACCEPT HELLO
+   * sosfType = 5: QUIT
+   * sosfType = 6: LSAUPDATE
    */
   public short sospfType; 
   public String routerID;
