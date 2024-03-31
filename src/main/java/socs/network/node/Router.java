@@ -47,11 +47,13 @@ public class Router {
         ret = i;
         break;
       } else if (linkServices[i].link == null) {
+        // TODO : feels weird to have to check if link is null here, let's see if there is an alternative
         linkServices[i] = null;
         ret = i;
         break;
       }
     }
+    // getAvailablePort should not join threads, its purpose is to check if a port is available
     if (ret != -1 && portThreads[ret] != null) {
       try {
         portThreads[ret].interrupt();
@@ -123,27 +125,10 @@ public class Router {
    * NOTE: this command should not trigger link database synchronization
    */
   private void processAttach(String processIP, short processPort, String simulatedIP) {
+    // First create packet to send to the remote router, packet type 0 is an attach request
+    SOSPFPacket attachRequestPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, simulatedIP);
     
-    // First create packet to send to the remote router
-    SOSPFPacket packet = new SOSPFPacket();
-    
-    //packet.srcProcessIP = rd.processIPAddress;
-    //packet.srcProcessPort = rd.processPortNumber;
-    
-    //packet.srcIP = rd.simulatedIPAddress;
-    //packet.dstIP = simulatedIP;
-    
-    packet.sospfType = 0;
-    //packet.routerID = rd.simulatedIPAddress;
-    //packet.neighborID = simulatedIP;
-
-    // Socket and buffer definition
-    /*Socket socket = null;
-    InputStreamReader inputStreamReader = null;
-    OutputStreamWriter outputStreamWriter = null;
-    BufferedReader bufferedReader = null;
-    BufferedWriter bufferedWriter = null;*/
-
+    // Check if we have available ports 
     int port = getAvailablePort();
     if (port == -1) {
         System.out.println("Can't connect to more routers");
@@ -151,40 +136,34 @@ public class Router {
     }
 
     try {
-      // IP address of server (remote router) and TCP port
+      // Create a socket to connect to target router (processIP, processPort)
       Socket socket = new Socket(processIP, processPort);
-      //System.out.println("ACCEPTED");
-      // Read from the server and output to the server
-      InputStream input = socket.getInputStream();
+    
+      // Create input and output streams
       ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-      ObjectInputStream in = new ObjectInputStream(input);
+      ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
-      out.writeObject(packet);
+      // Send the attach request packet
+      out.writeObject(attachRequestPacket);
       out.flush();
-      //ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-      //System.out.println("TWO");
 
-      //bufferedReader = new BufferedReader(inputStreamReader);
-      //bufferedWriter = new BufferedWriter(outputStreamWriter);
-
+      // Wait for response from the remote router, readObject will block until it receives something
+      // This should be a SOSPFPacket with type 2 or 3 (ACCEPTED or REJECTED respectively)
       SOSPFPacket msgFromServer = (SOSPFPacket) in.readObject();
-      if (msgFromServer.sospfType == 2) {
-        // REJECTED
-        System.out.println("Connection rejected");
+      if (msgFromServer.sospfType == 1) {
+        // Attach request accepted
+        addLinkService(processIP, processPort, simulatedIP, port, socket, in, out);
+        System.out.println("Your attach request has been ACCEPTED;");
+      } 
+      else if (msgFromServer.sospfType == 2) {
+        // Attach request rejected
         in.close();
         out.close();
         socket.close();
-      } 
-      else if (msgFromServer.sospfType == 3) {
-        // ACCEPTED
-        addLinkService(processIP, processPort, simulatedIP, port, socket, in, out);
-        System.out.println("ACCEPTED");
-
+        System.out.println("Your attach request has been REJECTED;");
       }
     } catch (Exception e) {
       e.printStackTrace();
-    } finally {
-      // TODO
     }
   }
 
@@ -193,49 +172,54 @@ public class Router {
    * process request from the remote router. 
    * For example: when router2 tries to attach router1. Router1 can decide whether it will accept this request. 
    * The intuition is that if router2 is an unknown/anomaly router, it is always safe to reject the attached request from router2.
+   * @description: Send ACCEPT or REJECT response to the attach request from the remote router. 
    */
   private void requestHandler() {
-    // Define the server socket
+    // Define the server socket that will be listening for incoming connections requests
     ServerSocket serverSocket = null;
-    //Socket socket = null;
 
-    // We will receive a SOSPFPacket from the remote router
-    SOSPFPacket packet = null;
+    // Packet to store the incoming request
+    SOSPFPacket requestPacket = null;
 
     try {
+      // Create the server socket
       serverSocket = new ServerSocket(rd.processPortNumber);
+
       while (!Thread.currentThread().isInterrupted()) {
         Socket socket = null;
-        // Note that accept is "blocking" and will wait for a connection to be made.
-        // only one connection can be made at a time.
+        // Set a timeout for the server socket
         serverSocket.setSoTimeout(1000);
         while (socket == null) {
-            try {
-                socket = serverSocket.accept();
-            } catch (SocketTimeoutException e) {
-                if (Thread.currentThread().isInterrupted()) {
-                    System.out.println("ROUTER NOT ONLINE");
-                    serverSocket.close();
-                    return;
-                }
-                continue;
+          try {
+            // accept is a blocking call, it will wait until a connection is made
+            // if the timeout is reached, a SocketTimeoutException is thrown 
+            // and the loop will continue
+            socket = serverSocket.accept();
+          } catch (SocketTimeoutException e) {
+            if (Thread.currentThread().isInterrupted()) {
+                System.out.println("Server socket interrupted, closing...");
+                serverSocket.close();
+                return;
             }
+            continue;
+          }
         }
+        // Create input and output streams for the socket
         ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-        packet = (SOSPFPacket) in.readObject();
+        // Read the incoming packet
+        requestPacket = (SOSPFPacket) in.readObject();
 
-
-        System.out.println("\nReceived attach request from " + packet.srcIP + ";");
+        System.out.println("\nReceived attach request from " + requestPacket.srcIP + ";");
 
         int availablePort = getAvailablePort();
         if (availablePort == -1) {
-          // No ports available means that we don't have to ask the user if they want to attach the remote router
-          // send SOSPF packet with REJECT HELLO type
+          // No available ports, reject the request
           SOSPFPacket rejectPacket = new SOSPFPacket();
-          rejectPacket.sospfType = 2; // No need to put other fields?
+          rejectPacket.sospfType = 2;
           out.writeObject(rejectPacket);
           out.flush();
+          // Close the streams and the socket
           socket.getInputStream().close();
           socket.getOutputStream().close();
           socket.close();
@@ -248,34 +232,38 @@ public class Router {
           }
           // if user answers Y, then attach the remote router
           if (userAnswer.equals("Y")) {
-            // Request to attach accepted
-            // Add link, include the socket in the link "connection"
-            LinkService linkService = addLinkService(packet.srcProcessIP, packet.srcProcessPort, packet.srcIP, availablePort, socket, in, out);
+            // User accepted the request to attach
 
-            // Spawn thread for link service
-            //LinkService linkService = new LinkService(ports[availablePort]);
+            // Create a link service for the new connection
+            LinkService linkService = addLinkService(requestPacket.srcProcessIP, requestPacket.srcProcessPort, requestPacket.srcIP, availablePort, socket, in, out);
+
+            // Start the link service thread to handle incoming packets
             portThreads[availablePort] = new Thread(linkService);
             portThreads[availablePort].start();
             
             // send SOSPF packet with ACCEPT HELLO type
             SOSPFPacket acceptPacket = new SOSPFPacket();
-            acceptPacket.sospfType = 3; // We need to put the other fields, but this is just for testing
+            acceptPacket.sospfType = 1; // We need to put the other fields, but this is just for testing
             out.writeObject(acceptPacket);
             out.flush();
           } 
           else {
-            // send SOSPF packet with REJECT HELLO type
+            // User rejected the request to attach, send REJECT type
+
+            // Send SOSPF packet with REJECT type
             SOSPFPacket rejectPacket = new SOSPFPacket();
-            rejectPacket.sospfType = 2; // No need to put other fields?
+            rejectPacket.sospfType = 2; 
             out.writeObject(rejectPacket);
             out.flush();
+            // Close the streams and the socket
+            in.close();
+            out.close();
+            socket.close();
           } 
         }
       }
     } catch (Exception e) {
       e.printStackTrace();
-    } finally {
-      
     }
   }
 

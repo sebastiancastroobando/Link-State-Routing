@@ -15,7 +15,15 @@ public class SOSPFPacket implements Serializable {
   public String dstIP;
 
   //common header
-  public short sospfType; //0 - HELLO, 1 - LinkState Update, 2 - REJECT HELLO, 3 - ACCEPT HELLO. 4 - QUIT
+  /**
+   * sosfType = 0: Attach Request
+   * sosfType = 1: Accept Attach
+   * sosfType = 2: REJECT Attach
+   * sosfType = 2: HELLO
+   * sosfType = 3: ACCEPT HELLO
+   * sosfType = 4: QUIT
+   */
+  public short sospfType; 
   public String routerID;
 
   //used by HELLO message to identify the sender of the message

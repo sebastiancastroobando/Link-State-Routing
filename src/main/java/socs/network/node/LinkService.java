@@ -5,7 +5,6 @@ import java.io.EOFException;
 import java.net.Socket;
 import java.net.SocketException;
 
-import ch.qos.logback.core.encoder.EchoEncoder;
 import socs.network.message.SOSPFPacket;
 
 public class LinkService implements Runnable {
