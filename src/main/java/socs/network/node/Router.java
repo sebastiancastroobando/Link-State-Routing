@@ -300,11 +300,12 @@ public class Router {
       SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[i].link.targetRouter.simulatedIPAddress);
       helloPacket.sospfType = 2; // HELLO type
 
-      // Before sending, we can already set the status of the target router to INIT
-      linkServices[i].link.targetRouter.status = RouterStatus.INIT;
+      // If the link is already set to TWO_WAY, then don't change the status to INIT
+      if (linkServices[i].link.targetRouter.status != RouterStatus.TWO_WAY) {
+        // Set to INIT so we expect a hello back and set to TWO_WAY
+        linkServices[i].link.targetRouter.status = RouterStatus.INIT;
+      }
       // Send the HELLO packet, first is to confirm two way communication from this router
-      linkServices[i].send(helloPacket);
-      // Second HELLO serves as a confirmation of the two way communication
       linkServices[i].send(helloPacket);
     }
 

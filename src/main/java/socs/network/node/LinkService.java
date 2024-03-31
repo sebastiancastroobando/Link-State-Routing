@@ -54,12 +54,14 @@ public class LinkService implements Runnable {
         SOSPFPacket incomingPacket = receive();
         if (incomingPacket != null) {
           if(incomingPacket.sospfType == 2) {
-            System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
-            // When we receive the HELLO, the router can either be null, INIT, or TWO_WAY
-            // If the router is NULL, we need to set the router to INIT
+            // print status for debugging
+            // System.out.println("Status of " + link.sourceRouter.simulatedIPAddress + ": " + link.sourceRouter.status);
             if(link.targetRouter.status == null) {
+              // Inform user that the router has received a HELLO
+              System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
               // Set the router to INIT
               link.targetRouter.status = RouterStatus.INIT;
+              link.sourceRouter.status = RouterStatus.INIT;
               // Inform user that the router is now in INIT
               System.out.println("Set " + incomingPacket.srcIP + " STATE to INIT");
               // Send a HELLO back
@@ -67,11 +69,21 @@ public class LinkService implements Runnable {
               helloPacket.sospfType = 2;
               this.send(helloPacket);
             } else if (link.targetRouter.status == RouterStatus.INIT) {
-              // If the router is already in INIT, we need to set the router to TWO_WAY
+              // Inform user that the router has received a HELLO
+              System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
+              // Set router to TWO_WAY
               link.targetRouter.status = RouterStatus.TWO_WAY;
+              link.sourceRouter.status = RouterStatus.TWO_WAY;
               // Inform user that the router is now in TWO_WAY
               System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
-            } 
+              // Send HELLO back
+              SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
+              helloPacket.sospfType = 2;
+              this.send(helloPacket);
+            } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
+              // Should we inform the user that the router is already in TWO_WAY?
+
+            }
           }
         }
             /* 
@@ -91,7 +103,7 @@ public class LinkService implements Runnable {
               break;
             }
             */
-        }
-        closeConnection();
     }
+    closeConnection();
+  }
 }
