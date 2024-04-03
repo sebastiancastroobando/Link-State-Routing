@@ -7,8 +7,10 @@ import java.net.SocketException;
 
 import socs.network.message.SOSPFPacket;
 
-public class LinkService implements Runnable {
+public class LinkService {
     public Link link;
+
+    public Thread linkServiceThread;
 
     public LinkService(Link link) {
         this.link = link;
@@ -50,55 +52,75 @@ public class LinkService implements Runnable {
       }
     }
 
-    public void run() {
-      while (!Thread.currentThread().isInterrupted() && link != null) {
-        SOSPFPacket incomingPacket = receive();
-        if (incomingPacket != null) {
-          if(incomingPacket.sospfType == 3) {
-            // print status for debugging
-            // System.out.println("Status of " + link.sourceRouter.simulatedIPAddress + ": " + link.sourceRouter.status);
-            if(link.targetRouter.status == null) {
-              // Inform user that the router has received a HELLO
-              System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
-              // Set the router to INIT
-              link.targetRouter.status = RouterStatus.INIT;
-              link.sourceRouter.status = RouterStatus.INIT;
-              // Inform user that the router is now in INIT
-              System.out.println("Set " + incomingPacket.srcIP + " STATE to INIT");
-              // Send a HELLO back
-              SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
-              helloPacket.sospfType = 3;
-              this.send(helloPacket);
-            } else if (link.targetRouter.status == RouterStatus.INIT) {
-              // Inform user that the router has received a HELLO
-              System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
-              // Set router to TWO_WAY
-              link.targetRouter.status = RouterStatus.TWO_WAY;
-              link.sourceRouter.status = RouterStatus.TWO_WAY;
-              // Inform user that the router is now in TWO_WAY
-              System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
-              // Send HELLO back
-              SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
-              helloPacket.sospfType = 3;
-              this.send(helloPacket);
-            } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
-              // Should we inform the user that the router is already in TWO_WAY?
-            }
-          } else if (incomingPacket.sospfType == 5) {
-            // Inform user that the router is quitting
-            System.out.print("\nReceived QUIT from " + incomingPacket.srcIP + ". Closing connection.\n>> ");
-            // The thread has to close itself
-            closeConnection();
-            return;
-            // Close the thread itself
-          } else {
-            // We closed the connection, print for debugging
-            System.out.println("Connection severed");
-          }
-        } else {
-          // Received a null packet, should we close the connection?
-        }
+    // Start thread on the link service
+    public void startThread() {
+      LinkServiceThread service = new LinkServiceThread();
+      this.linkServiceThread = new Thread(service);
+      this.linkServiceThread.start();
+    }
+    // Stop
+    public void stopThread() {
+      this.linkServiceThread.interrupt();
+      try {
+        this.linkServiceThread.join();
+      } catch (InterruptedException e) {
+        return;
+      } catch (Exception e) {
+        System.out.println("Something went wrong while stopping the link service thread;");
       }
-      closeConnection();
-    }   
+    }
+
+    class LinkServiceThread implements Runnable {
+      public void run() {
+        while (!Thread.currentThread().isInterrupted() && link != null) {
+          SOSPFPacket incomingPacket = receive();
+          if (incomingPacket != null) {
+            if(incomingPacket.sospfType == 3) {
+              // print status for debugging
+              // System.out.println("Status of " + link.sourceRouter.simulatedIPAddress + ": " + link.sourceRouter.status);
+              if(link.targetRouter.status == null) {
+                // Inform user that the router has received a HELLO
+                System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
+                // Set the router to INIT
+                link.targetRouter.status = RouterStatus.INIT;
+                link.sourceRouter.status = RouterStatus.INIT;
+                // Inform user that the router is now in INIT
+                System.out.println("Set " + incomingPacket.srcIP + " STATE to INIT");
+                // Send a HELLO back
+                SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
+                helloPacket.sospfType = 3;
+                send(helloPacket);
+              } else if (link.targetRouter.status == RouterStatus.INIT) {
+                // Inform user that the router has received a HELLO
+                System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
+                // Set router to TWO_WAY
+                link.targetRouter.status = RouterStatus.TWO_WAY;
+                link.sourceRouter.status = RouterStatus.TWO_WAY;
+                // Inform user that the router is now in TWO_WAY
+                System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
+                // Send HELLO back
+                SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
+                helloPacket.sospfType = 3;
+                send(helloPacket);
+              } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
+                // Should we inform the user that the router is already in TWO_WAY?
+              }
+            } else if (incomingPacket.sospfType == 5) {
+              // Inform user that the router is quitting
+              System.out.print("\nReceived QUIT from " + incomingPacket.srcIP + ". Closing connection.\n>> ");
+              // The thread has to close itself
+              closeConnection();
+              return;
+              // Close the thread itself
+            } else {
+              // We closed the connection, print for debugging
+              System.out.println("Connection severed");
+            }
+          } else {
+            // Received a null packet, should we close the connection?
+          }
+        }
+        closeConnection();
+      }
+    }
 }

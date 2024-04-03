@@ -23,7 +23,6 @@ public class Router {
   //assuming that all routers are with 4 ports
   LinkService[] linkServices = new LinkService[4];
   // We need 4 ports for each router, so we need to keep track of the ports that are being used
-  Thread[] portThreads = new Thread[4];
   // Request handler thread
   Thread requestHandlerThread;
 
@@ -59,14 +58,13 @@ public class Router {
   }
 
   // add link method
-  private LinkService addLinkService(String processIP, short processPort, String simIP, int port, Socket socket, ObjectInputStream in, ObjectOutputStream out) {
+  private void addLinkService(String processIP, short processPort, String simIP, int port, Socket socket, ObjectInputStream in, ObjectOutputStream out) {
     RouterDescription remoteRouter = new RouterDescription();
     remoteRouter.processIPAddress = processIP;
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
     linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out));
-    return linkServices[port];
   }
 
   // updates linkServices if need be, upon get
@@ -128,16 +126,9 @@ public class Router {
     quitPacket.srcIP = rd.simulatedIPAddress;
     linkServices[portNumber].send(quitPacket);
     // Close the connection
-    portThreads[portNumber].interrupt();
-    try {
-      portThreads[portNumber].join();
-    } catch (InterruptedException e) {
-      // Do nothing
-    }
+    linkServices[portNumber].stopThread();
     linkServices[portNumber].closeConnection();
-    // Remove the link service
     linkServices[portNumber] = null;
-    portThreads[portNumber] = null;
   }
 
   /**
@@ -182,9 +173,7 @@ public class Router {
         // Attach request accepted
         addLinkService(processIP, processPort, simulatedIP, availablePort, socket, in, out);
         // Start the link service thread to handle incoming packets
-        portThreads[availablePort] = new Thread(linkServices[availablePort]);
-        portThreads[availablePort].start();
-
+        linkServices[availablePort].startThread();
         System.out.println("Your attach request has been ACCEPTED;");
         return availablePort;
       } 
@@ -272,11 +261,11 @@ public class Router {
             // User accepted the request to attach
 
             // Create a link service for the new connection
-            LinkService linkService = addLinkService(requestPacket.srcProcessIP, requestPacket.srcProcessPort, requestPacket.srcIP, availablePort, socket, in, out);
+            addLinkService(requestPacket.srcProcessIP, requestPacket.srcProcessPort, requestPacket.srcIP, availablePort, socket, in, out);
+            linkServices[availablePort].startThread();
 
             // Start the link service thread to handle incoming packets
-            portThreads[availablePort] = new Thread(linkService);
-            portThreads[availablePort].start();
+            
             
             // send SOSPF packet with ACCEPT Attach type
             SOSPFPacket acceptPacket = new SOSPFPacket();
