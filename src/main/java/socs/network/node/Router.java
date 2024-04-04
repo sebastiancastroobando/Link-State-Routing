@@ -353,10 +353,13 @@ public class Router {
     }
 
     // multicast LSA update packet to all neighbors
-    for (LinkService linkService : linkServices) {
-      LSAUpdatePacket.dstIP = linkService.link.targetRouter.simulatedIPAddress;
-      LSAUpdatePacket.neighborID = linkService.link.targetRouter.simulatedIPAddress;
-      linkService.send(LSAUpdatePacket);
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        continue;
+      }
+      LSAUpdatePacket.dstIP = linkServices[i].link.targetRouter.simulatedIPAddress;
+      LSAUpdatePacket.neighborID = linkServices[i].link.targetRouter.simulatedIPAddress;
+      linkServices[i].send(LSAUpdatePacket);
     }
   }
 

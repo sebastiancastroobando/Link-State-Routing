@@ -43,8 +43,11 @@ public class LinkStateDatabase {
     }
 
     // add every LSA per addEntry rules
-    for (LSA lsa : LSAVector) {
-      addEntry(lsa);
+    for (int i = 0; i < LSAVector.size(); i++) {
+      if (LSAVector.elementAt(i) == null) {
+        continue;
+      }
+      addEntry(LSAVector.elementAt(i));
     }
     // increment the sequence number
     selfLSA.lsaSeqNumber += 1;
@@ -78,9 +81,12 @@ public class LinkStateDatabase {
           System.out.println("Current LSD entry has incorrect head: from LinkStateDatabase.java");
         }
         int new_port = -1;
-        for (LinkDescription LSDlinkDesc : LSDlinks) {
-          if (LSDlinkDesc.linkID.equals(head.linkID)) {
-            new_port = LSDlinkDesc.portNum;
+        for (int i = 0; i < LSDlinks.size(); i++) {
+          if (LSDlinks.get(i) == null) {
+            continue;
+          }
+          if (LSDlinks.get(i).linkID.equals(head.linkID)) {
+            new_port = LSDlinks.get(i).portNum;
           }
         }
         head.portNum = new_port;

@@ -2,6 +2,7 @@ package socs.network.node;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.EOFException;
+import java.io.OptionalDataException;
 import java.net.Socket;
 import java.net.SocketException;
 
@@ -20,6 +21,7 @@ public class LinkService extends Router {
         boolean ret = false;
         try {
           link.out.writeObject(packet);
+          link.out.flush();
         } catch (SocketException e) {
           System.out.println("Connection severed, in LinkService.send()");
         } catch (Exception e) {
