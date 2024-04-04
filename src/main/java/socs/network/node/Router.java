@@ -2,6 +2,7 @@ package socs.network.node;
 
 import socs.network.message.SOSPFPacket;
 import socs.network.util.Configuration;
+import socs.network.message.LSA;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -14,9 +15,12 @@ import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.sql.Time;
 
+import java.util.Vector;
+
 public class Router {
 
   protected LinkStateDatabase lsd;
+  public Object LSDLock = new Object();
 
   RouterDescription rd = new RouterDescription();
 
@@ -78,6 +82,7 @@ public class Router {
   }
 
   // --------------------------------------------------------------------------
+  public Router(){}
 
   public Router(Configuration config) {
     rd.simulatedIPAddress = config.getString("socs.network.router.ip");
@@ -97,7 +102,12 @@ public class Router {
    * @param destinationIP the ip adderss of the destination simulated router
    */
   private void processDetect(String destinationIP) {
-
+    String shortestPath = lsd.getShortestPath(destinationIP);
+    if (shortestPath == null) {
+      System.out.println("Destination router does not exist");
+    } else {
+      System.out.println(shortestPath);
+    }
   }
 
   /**
@@ -309,6 +319,11 @@ public class Router {
    * broadcast Hello to neighbors
    */
   private void processStart() {
+    // initialize LSA update packet
+    // destination IP will change when sending packet
+    SOSPFPacket LSAUpdatePacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, null);
+    LSAUpdatePacket.sospfType = 6; // LSAUPDATE type
+
     // Send HELLO message through all initialized link services
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
@@ -328,8 +343,21 @@ public class Router {
       }
       // Send the HELLO packet, first is to confirm two way communication from this router
       linkServices[i].send(helloPacket);
+
+      // TODO : link database synchronization
+
+      // generate LSA based off of current linkService
+      LSA lsa = lsd.linkServiceToLSA(linkServices[i]);
+      // add neighbor to packet
+      LSAUpdatePacket.lsaArray.add(lsa);
     }
-    // TODO : link database synchronization
+
+    // multicast LSA update packet to all neighbors
+    for (LinkService linkService : linkServices) {
+      LSAUpdatePacket.dstIP = linkService.link.targetRouter.simulatedIPAddress;
+      LSAUpdatePacket.neighborID = linkService.link.targetRouter.simulatedIPAddress;
+      linkService.send(LSAUpdatePacket);
+    }
   }
 
   /**

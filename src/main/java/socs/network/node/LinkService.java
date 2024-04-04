@@ -7,7 +7,7 @@ import java.net.SocketException;
 
 import socs.network.message.SOSPFPacket;
 
-public class LinkService {
+public class LinkService extends Router {
     public Link link;
 
     public Thread linkServiceThread;
@@ -111,7 +111,12 @@ public class LinkService {
               // The thread has to close itself
               closeConnection();
               return;
-              // Close the thread itself
+            } else if (incomingPacket.sospfType == 6) {
+              // we have received an LSA update packet
+              // => update the lsd
+              synchronized(LSDLock) {
+                lsd.addLSAVector(incomingPacket.lsaArray);
+              }
             } else {
               // We closed the connection, print for debugging
               System.out.println("Connection severed");

@@ -51,5 +51,6 @@ public class SOSPFPacket implements Serializable {
     this.dstIP = dstIP;
     this.routerID = srcIP;
     this.neighborID = dstIP;
+    this.lsaArray = new Vector<LSA>();
   }
 }
