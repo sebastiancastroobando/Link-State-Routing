@@ -26,6 +26,10 @@ public class LinkStateDatabase {
     return null;
   }
 
+  public int addEntry(RouterDescription destRouter) {
+    ///
+  }
+
   //initialize the linkstate database by adding an entry about the router itself
   private LSA initLinkStateDatabase() {
     LSA lsa = new LSA();

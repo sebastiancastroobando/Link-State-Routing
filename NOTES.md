@@ -1,3 +1,6 @@
+## Diagrams for LSD
+https://excalidraw.com/#json=7uqHYElxrNqnmcFabFWVa,JktvtyWvJZJlu24qoygUUg
+
 # To-Dos
 - [x] ProcessQuit -> implement using processDisconnect on the list of running link services (sebastian)
 - [x] delete other branches
