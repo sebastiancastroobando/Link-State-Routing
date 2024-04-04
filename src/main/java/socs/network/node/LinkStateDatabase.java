@@ -26,8 +26,23 @@ public class LinkStateDatabase {
     return null;
   }
 
-  public int addEntry(RouterDescription destRouter) {
-    ///
+  // make LSD entry for current node's neighbors
+  public void addEntry(RouterDescription router) {
+    if (!_store.containsKey(router.simulatedIPAddress)) {
+      LSA lsa = new LSA();
+      lsa.linkStateID = router.simulatedIPAddress;
+      // seqNumber skipped for now
+      LinkDescription ld = new LinkDescription();
+      ld.linkId = router.simulatedIPAddress
+      ld.portNum = router.processPortNumber
+      lsa.links.add(ld);
+      _store.put(lsa.linkStateID, lsa)
+    }
+  }
+
+  // make LSD entry with existing LSA, should come from a started node
+  public void addEntry(RouterDescription router, LSA lsa) {
+    return;
   }
 
   //initialize the linkstate database by adding an entry about the router itself
