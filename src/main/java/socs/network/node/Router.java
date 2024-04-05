@@ -68,7 +68,7 @@ public class Router {
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out));
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock);
   }
 
   // updates linkServices if need be, upon get

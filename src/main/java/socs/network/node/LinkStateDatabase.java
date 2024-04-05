@@ -51,7 +51,7 @@ public class LinkStateDatabase {
     }
     // increment the sequence number
     selfLSA.lsaSeqNumber += 1;
-    _store.put(rd.simulatedIPAddress, selfLSA);
+    //_store.put(rd.simulatedIPAddress, selfLSA);
   }
 
   // make LSD entry for current node

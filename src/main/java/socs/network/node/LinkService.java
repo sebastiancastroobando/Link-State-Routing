@@ -8,13 +8,17 @@ import java.net.SocketException;
 
 import socs.network.message.SOSPFPacket;
 
-public class LinkService extends Router {
+public class LinkService {
     public Link link;
+    public LinkStateDatabase lsd;
+    public Object LSDLock;
 
     public Thread linkServiceThread;
 
-    public LinkService(Link link) {
+    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock) {
         this.link = link;
+        this.lsd = lsd;
+        this.LSDLock = LSDLock;
     }
 
     public boolean send(SOSPFPacket packet) {
