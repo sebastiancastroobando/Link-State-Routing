@@ -21,6 +21,10 @@ public class LinkService {
         this.LSDLock = LSDLock;
     }
 
+    public String getConnectedRouterSimluatedIP () {
+      return this.link.targetRouter.simulatedIPAddress;
+    }
+
     public boolean send(SOSPFPacket packet) {
         boolean ret = false;
         try {
@@ -118,11 +122,15 @@ public class LinkService {
               closeConnection();
               return;
             } else if (incomingPacket.sospfType == 6) {
+              // Inform user that the router has received an LSA update packet
+              System.out.println("\nReceived LSA update from " + incomingPacket.srcIP + ".\n>> ");
+
+              
               // we have received an LSA update packet
               // => update the lsd
-              synchronized(LSDLock) {
-                lsd.addLSAVector(incomingPacket.lsaArray);
-              }
+              // synchronized(LSDLock) {
+              //   lsd.addLSAVector(incomingPacket.lsaArray);
+              // }
             } else {
               // We closed the connection, print for debugging
               System.out.println("Connection severed");

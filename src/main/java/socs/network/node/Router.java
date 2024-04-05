@@ -5,15 +5,12 @@ import socs.network.util.Configuration;
 import socs.network.message.LSA;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
-import java.sql.Time;
 
 import java.util.Vector;
 
@@ -324,6 +321,9 @@ public class Router {
     SOSPFPacket LSAUpdatePacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, null);
     LSAUpdatePacket.sospfType = 6; // LSAUPDATE type
 
+    // String to know all the destinations we are multicasting to
+    String destinations = "";
+
     // Send HELLO message through all initialized link services
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
@@ -344,21 +344,26 @@ public class Router {
       // Send the HELLO packet, first is to confirm two way communication from this router
       linkServices[i].send(helloPacket);
 
-      // TODO : link database synchronization
+      // Add the link to the self LSA in the link state database
+      lsd.addLinkToSelfLSA(linkServices[i], i);
 
-      // generate LSA based off of current linkService
-      LSA lsa = lsd.linkServiceToLSA(linkServices[i]);
-      // add neighbor to packet
-      LSAUpdatePacket.lsaArray.add(lsa);
+      // Add the destination to the destinations string
+      destinations += linkServices[i].getConnectedRouterSimluatedIP() + "; ";
     }
 
     // multicast LSA update packet to all neighbors
+    System.out.println("Multicasting LSA update to: " + destinations);
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
         continue;
       }
-      LSAUpdatePacket.dstIP = linkServices[i].link.targetRouter.simulatedIPAddress;
-      LSAUpdatePacket.neighborID = linkServices[i].link.targetRouter.simulatedIPAddress;
+      // Set the destination IP to the connected router's simulated IP
+      LSAUpdatePacket.dstIP = linkServices[i].getConnectedRouterSimluatedIP();
+      LSAUpdatePacket.neighborID = linkServices[i].getConnectedRouterSimluatedIP();
+
+      // Get vector of LSA's from the link state database
+      LSAUpdatePacket.lsaArray = lsd.getLSAVector();
+
       linkServices[i].send(LSAUpdatePacket);
     }
   }

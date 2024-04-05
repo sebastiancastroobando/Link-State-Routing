@@ -4,7 +4,6 @@ import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Vector;
 
 public class LinkStateDatabase {
@@ -20,112 +19,124 @@ public class LinkStateDatabase {
     _store.put(l.linkStateID, l);
   }
 
+  public Vector<LSA> getLSAVector() {
+    Vector<LSA> lsaVector = new Vector<LSA>();
+    for (LSA lsa : _store.values()) {
+      lsaVector.add(lsa);
+    }
+    return lsaVector;
+  }
+
+  // We will receive a vector of LSAs from a neighbor router
+  // We need to add each LSA to our database
+  public void addLSAVector(Vector<LSA> LSAVector) {
+    // for each LSA in the vector, add it to the database
+    // if the sequence number is higher than the one we have
+    for (LSA lsa : LSAVector) {
+      if (lsa == null) {
+        continue;
+      }
+      // if we don't have an entry for this LSA, add it
+      if (!_store.containsKey(lsa.linkStateID)) {
+        _store.put(lsa.linkStateID, lsa);
+      } else {    
+        // if we have an entry for this LSA, check the sequence number
+        LSA currentLSA = _store.get(lsa.linkStateID);
+        if (lsa.lsaSeqNumber > currentLSA.lsaSeqNumber) {
+          // if the new LSA has a higher sequence number, update the entry
+          _store.put(lsa.linkStateID, lsa);
+        }
+      }
+    }
+  }
+
   /**
    * output the shortest path from this router to the destination with the given IP address
    */
-  String getShortestPath(String destinationIP) {
-    String ret = null;
-    if (_store.containsKey(destinationIP)) {
-      LSA destLSA = _store.get(destinationIP);
-      ret = destLSA.toString();
+  public String getShortestPath(String destinationIP) {
+    // Dijkstra's algorithm
+    // Pseudocode from https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+
+    // The set of routers that we have already found the shortest path to
+    Vector<String> S = new Vector<String>();
+    // The set of routers that we have not found the shortest path to
+    Vector<String> Q = new Vector<String>();
+    // The set of routers that we have found the shortest path to
+    HashMap<String, String> previous = new HashMap<String, String>();
+    // The set of routers that we have found the shortest path to
+    HashMap<String, Integer> distance = new HashMap<String, Integer>();
+
+    // Initialize the distance to all routers to infinity
+    for (String router : _store.keySet()) {
+      distance.put(router, Integer.MAX_VALUE);
+      Q.add(router);
     }
-    return ret;
+
+    // The distance to ourself is 0
+    distance.put(rd.simulatedIPAddress, 0);
+
+    // While there are still routers we haven't found the shortest path to
+    while (!Q.isEmpty()) {
+      // Find the router in Q with the smallest distance
+      String u = null;
+      int minDistance = Integer.MAX_VALUE;
+      for (String router : Q) {
+        if (distance.get(router) < minDistance) {
+          u = router;
+          minDistance = distance.get(router);
+        }
+      }
+
+      // Remove u from Q
+      Q.remove(u);
+      // Add u to S
+      S.add(u);
+
+      // For each neighbor v of u
+      LSA uLSA = _store.get(u);
+      for (LinkDescription link : uLSA.links) {
+        String v = link.linkID;
+        int alt = distance.get(u) + 1;
+        if (alt < distance.get(v)) {
+          distance.put(v, alt);
+          previous.put(v, u);
+        }
+      }
+    }
+
+    // Reconstruct the path
+    String path = "";
+    String u = destinationIP;
+    while (previous.containsKey(u)) {
+      path = u + " -> " + path;
+      u = previous.get(u);
+    }
+
+    return path;
   }
 
-  // add the whole vector to LSD
-  public void addLSAVector(Vector<LSA> LSAVector) {
-    // if sequence number is the same
-    // do nothing
+  /**
+   * Function that adds a link to the current router's LSA
+   * @param linkService
+   */
+  public void addLinkToSelfLSA(LinkService linkService, int portNum) {
+    // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
-    LSA headVectorLSA = LSAVector.elementAt(0);
-    if (selfLSA.lsaSeqNumber >= headVectorLSA.lsaSeqNumber) {
-      return;
-    }
 
-    // add every LSA per addEntry rules
-    for (int i = 0; i < LSAVector.size(); i++) {
-      if (LSAVector.elementAt(i) == null) {
-        continue;
-      }
-      addEntry(LSAVector.elementAt(i));
-    }
+    // Create a linkDescription from the linkService to add to the LSA
+    LinkDescription link = new LinkDescription();
+
+    link.linkID = linkService.getConnectedRouterSimluatedIP();
+    link.portNum = portNum;
+    
+    // Add the link to the LSA
+    selfLSA.links.add(link);
+    
     // increment the sequence number
     selfLSA.lsaSeqNumber += 1;
-    //_store.put(rd.simulatedIPAddress, selfLSA);
-  }
 
-  // make LSD entry for current node
-  private void addEntry(LSA lsa) {
-    if (!_store.containsKey(lsa.linkStateID)) {
-      // if there is no record of destination node
-      // add the lsa entry
-      _store.put(lsa.linkStateID, lsa);
-    } else {
-      // if there is a record of the destination node
-      // check if we need to update said entry based on
-      // the incoming lsa
-      LinkDescription head = lsa.links.getFirst();
-      if (!head.linkID.equals(rd.simulatedIPAddress)) {
-        // current LSD entry is 'foreign', modify the head portNum
-        // and update the head pointer of this LSD entry
-        LinkedList<LinkDescription> LSDlinks = _store.get(head.linkID).links;
-        LinkDescription LSDhead = LSDlinks.getFirst();
-        if (LSDhead.linkID.equals(rd.simulatedIPAddress)) {
-          // if the current lsa entry for this destination node
-          // is properly set up, if it's shorter than the updated
-          // incoming lsa => return
-          if (LSDlinks.size() <= lsa.links.size() + 1) {
-            return;
-          }
-        } else {
-          System.out.println("Current LSD entry has incorrect head: from LinkStateDatabase.java");
-        }
-        int new_port = -1;
-        for (int i = 0; i < LSDlinks.size(); i++) {
-          if (LSDlinks.get(i) == null) {
-            continue;
-          }
-          if (LSDlinks.get(i).linkID.equals(head.linkID)) {
-            new_port = LSDlinks.get(i).portNum;
-          }
-        }
-        head.portNum = new_port;
-        lsa.links.set(0, head);
-        // head is now modified, need to update lsa.links.head pointer
-        LinkDescription new_head = new LinkDescription();
-        new_head.linkID = rd.simulatedIPAddress;
-        new_head.portNum = -1;
-        lsa.links.addFirst(new_head);
-        // AS OF NOW THE ONLY LOCAL PORT IS AT lsa.links[1]
-        // THE LINKID AT lsa.links.tail SHOULD MATCH THE lsa.linkStateID
-        // IF WE SEND TO lsa.linkStateID, WE USE THE TARGET NODE AT lsa.links[1]
-        // AS OF NOW THE LINKEDLISTS ARE ONLY USEFULL TO GET THE COST OF THE PATH
-        // SEEMS WASTEFUL, MAYBE THE ONLY WAY TO DO IT IDK
-        _store.put(lsa.linkStateID, lsa);
-      } else {
-        // lsa is a path to the current node from a
-        // 'foreign' node, path is definately longer
-        // => ignore
-      }
-    }
-  }
-
-  // used to translate a linkService to LSA
-  // should be used outside of this class
-  public LSA linkServiceToLSA(LinkService linkService) {
-    LSA lsa = new LSA();
-    lsa.linkStateID = linkService.link.targetRouter.simulatedIPAddress;
-    // seqNum unclear right now
-    lsa.lsaSeqNumber = _store.get(rd.simulatedIPAddress).lsaSeqNumber + 1;
-    LinkDescription ld_head = new LinkDescription();
-    ld_head.linkID = linkService.link.sourceRouter.simulatedIPAddress;
-    ld_head.portNum = -1;
-    LinkDescription ld = new LinkDescription();
-    ld.linkID = linkService.link.targetRouter.simulatedIPAddress;
-    ld.portNum = linkService.link.targetRouter.processPortNumber;
-    lsa.links.add(ld_head);
-    lsa.links.add(ld);
-    return lsa;
+    // update the LSA in the store
+    _store.put(rd.simulatedIPAddress, selfLSA);
   }
 
   //initialize the linkstate database by adding an entry about the router itself
@@ -139,7 +150,6 @@ public class LinkStateDatabase {
     lsa.links.add(ld);
     return lsa;
   }
-
 
   public String toString() {
     StringBuilder sb = new StringBuilder();
