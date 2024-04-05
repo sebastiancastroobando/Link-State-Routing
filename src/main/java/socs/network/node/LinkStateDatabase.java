@@ -139,6 +139,22 @@ public class LinkStateDatabase {
     _store.put(rd.simulatedIPAddress, selfLSA);
   }
 
+  public void addEntries(Vector<LSA> lsaVector) {
+    for (LSA lsa : lsaVector) {
+      String key = lsa.linkStateID;
+      if (_store.containsKey(key)) {
+        LSA storedLSA = _store.get(key);
+        // check if the sequence number is higher
+        if (storedLSA.lsaSeqNumber < lsa.lsaSeqNumber) {
+          _store.put(key, lsa);
+        }
+        // ignore if the sequence number is lower
+      } else {
+        _store.put(key, lsa);
+      }
+    }
+  }
+
   //initialize the linkstate database by adding an entry about the router itself
   private LSA initLinkStateDatabase() {
     LSA lsa = new LSA();

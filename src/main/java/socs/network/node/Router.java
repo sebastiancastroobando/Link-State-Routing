@@ -26,6 +26,8 @@ public class Router {
   // We need 4 ports for each router, so we need to keep track of the ports that are being used
   // Request handler thread
   Thread requestHandlerThread;
+  Thread propagationThread;
+
 
   private volatile String userAnswer = "";
   private volatile boolean attachmentInProgess = false;
@@ -199,6 +201,9 @@ public class Router {
   }
 
 
+  public void propagationHandler() {
+
+  }
   /**
    * process request from the remote router. 
    * For example: when router2 tries to attach router1. Router1 can decide whether it will accept this request. 
@@ -307,9 +312,17 @@ public class Router {
       public void run() {
         requestHandler();
       }
+      
+    });
+
+    propagationThread = new Thread(new Runnable() {
+      public void run() {
+        propagationHandler();
+      }
     });
     // Here we can do some checks to see if the thread is alive and more!
     requestHandlerThread.start();
+    propagationThread.start();
   }
 
   /**
@@ -344,6 +357,14 @@ public class Router {
       // Send the HELLO packet, first is to confirm two way communication from this router
       linkServices[i].send(helloPacket);
 
+      while (linkServices[i].link.sourceRouter.status != RouterStatus.TWO_WAY) {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          
+        }
+      }
+
       // Add the link to the self LSA in the link state database
       lsd.addLinkToSelfLSA(linkServices[i], i);
 
@@ -351,8 +372,10 @@ public class Router {
       destinations += linkServices[i].getConnectedRouterSimluatedIP() + "; ";
     }
 
+    
+
     // multicast LSA update packet to all neighbors
-    System.out.println("Multicasting LSA update to: " + destinations);
+    System.out.println("\nMulticasting LSA update to: " + destinations + "\n>> ");
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
         continue;
@@ -367,6 +390,8 @@ public class Router {
       linkServices[i].send(LSAUpdatePacket);
     }
   }
+
+  
 
   /**
    * attach the link to the remote router, which is identified by the given simulated ip;
@@ -450,6 +475,8 @@ public class Router {
     try{
       requestHandlerThread.interrupt();
       requestHandlerThread.join();
+      propagationThread.interrupt();
+      propagationThread.join();
     } catch (InterruptedException e) {
         return;
     }

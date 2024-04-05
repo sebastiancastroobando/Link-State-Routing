@@ -87,7 +87,6 @@ public class LinkService {
           if (incomingPacket != null) {
             if(incomingPacket.sospfType == 3) {
               // print status for debugging
-              // System.out.println("Status of " + link.sourceRouter.simulatedIPAddress + ": " + link.sourceRouter.status);
               if(link.targetRouter.status == null) {
                 // Inform user that the router has received a HELLO
                 System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
@@ -105,7 +104,7 @@ public class LinkService {
                 System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
                 // Set router to TWO_WAY
                 link.targetRouter.status = RouterStatus.TWO_WAY;
-                link.sourceRouter.status = RouterStatus.TWO_WAY;
+                //link.sourceRouter.status = RouterStatus.TWO_WAY;
                 // Inform user that the router is now in TWO_WAY
                 System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
                 // Send HELLO back
@@ -114,6 +113,7 @@ public class LinkService {
                 send(helloPacket);
               } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
                 // Should we inform the user that the router is already in TWO_WAY?
+                link.sourceRouter.status = RouterStatus.TWO_WAY;
               }
             } else if (incomingPacket.sospfType == 5) {
               // Inform user that the router is quitting
@@ -123,14 +123,16 @@ public class LinkService {
               return;
             } else if (incomingPacket.sospfType == 6) {
               // Inform user that the router has received an LSA update packet
-              System.out.println("\nReceived LSA update from " + incomingPacket.srcIP + ".\n>> ");
-
+              System.out.print("\nReceived LSA update from " + incomingPacket.srcIP + "\n>> ");
               
-              // we have received an LSA update packet
-              // => update the lsd
-              // synchronized(LSDLock) {
-              //   lsd.addLSAVector(incomingPacket.lsaArray);
-              // }
+              // Before adding entry, we need to lock the LSD. 
+              synchronized(LSDLock) {
+                lsd.addEntries(incomingPacket.lsaArray);
+              }
+
+              // We wouldn't send the LSAUPDATE here...
+
+              System.out.println(lsd.toString());
             } else {
               // We closed the connection, print for debugging
               System.out.println("Connection severed");
