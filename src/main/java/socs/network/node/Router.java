@@ -44,7 +44,35 @@ public class Router {
     }
   }
   
-  public void propagation(int ignorePort) {
+  public void propagation(int ignorePort, SOSPFPacket packet) {
+    // No changes made
+    if (packet.lsaArray.size() == 0) {
+      return;
+    }
+    LSA selfLSA = lsd._store.get(rd.simulatedIPAddress);
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        continue;
+      }
+      // fill self LSA if # neighbors in linkServices does not match LSD
+      if (selfLSA.links.size() != linkServices.length + 1) {
+        LSA newLSA = lsd.addLinkToSelfLSA(linkServices[i], i);
+        if (newLSA == null) {
+          continue;
+        }
+        // need to modify packet
+        packet.lsaArray.add(newLSA);
+      }
+    }
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        continue;
+      }
+      // propagate packet to neighbors
+      //if (i != ignorePort) {
+      linkServices[i].send(packet);
+      //}
+    }
     System.out.println("We got into propagation! NOT sending to " + ignorePort);
   }
 

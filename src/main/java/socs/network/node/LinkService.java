@@ -25,7 +25,7 @@ public class LinkService {
         this.selfIndex = selfIndex;
     }
 
-    public String getConnectedRouterSimluatedIP () {
+    public String getConnectedRouterSimluatedIP() {
       return this.link.targetRouter.simulatedIPAddress;
     }
 
@@ -130,12 +130,13 @@ public class LinkService {
               System.out.print("\nReceived LSA update from " + incomingPacket.srcIP + "\n>> ");
               
               // Before adding entry, we need to lock the LSD. 
+              SOSPFPacket propagatePacket;
               synchronized(LSDLock) {
-                lsd.addEntries(incomingPacket.lsaArray);
+                propagatePacket = lsd.addEntries(incomingPacket);
               }
 
               // We wouldn't send the LSAUPDATE here...
-              router.propagation(selfIndex);
+              router.propagation(selfIndex, propagatePacket);
               System.out.println(lsd.toString());
             } else {
               // We closed the connection, print for debugging

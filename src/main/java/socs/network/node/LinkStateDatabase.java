@@ -2,6 +2,7 @@ package socs.network.node;
 
 import socs.network.message.LSA;
 import socs.network.message.LinkDescription;
+import socs.network.message.SOSPFPacket;
 
 import java.util.HashMap;
 import java.util.Vector;
@@ -29,7 +30,7 @@ public class LinkStateDatabase {
 
   // We will receive a vector of LSAs from a neighbor router
   // We need to add each LSA to our database
-  public void addLSAVector(Vector<LSA> LSAVector) {
+  /*public void addLSAVector(Vector<LSA> LSAVector) {
     // for each LSA in the vector, add it to the database
     // if the sequence number is higher than the one we have
     for (LSA lsa : LSAVector) {
@@ -48,7 +49,7 @@ public class LinkStateDatabase {
         }
       }
     }
-  }
+  }*/
 
   /**
    * output the shortest path from this router to the destination with the given IP address
@@ -119,10 +120,16 @@ public class LinkStateDatabase {
    * Function that adds a link to the current router's LSA
    * @param linkService
    */
-  public void addLinkToSelfLSA(LinkService linkService, int portNum) {
+  public LSA addLinkToSelfLSA(LinkService linkService, int portNum) {
     // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
-
+    // make sure we are not adding duplicates
+    for (LinkDescription ld : selfLSA.links) {
+      // if the linkID matches, return
+      if (ld.linkID.equals(linkService.getConnectedRouterSimluatedIP())) {
+        return null;
+      }
+    }
     // Create a linkDescription from the linkService to add to the LSA
     LinkDescription link = new LinkDescription();
 
@@ -137,9 +144,12 @@ public class LinkStateDatabase {
 
     // update the LSA in the store
     _store.put(rd.simulatedIPAddress, selfLSA);
+    return selfLSA;
   }
 
-  public void addEntries(Vector<LSA> lsaVector) {
+  public SOSPFPacket addEntries(SOSPFPacket packet) {
+    Vector<LSA> lsaVector = packet.lsaArray;
+    Vector<LSA> toKeep = new Vector<LSA>();
     for (LSA lsa : lsaVector) {
       String key = lsa.linkStateID;
       if (_store.containsKey(key)) {
@@ -147,12 +157,16 @@ public class LinkStateDatabase {
         // check if the sequence number is higher
         if (storedLSA.lsaSeqNumber < lsa.lsaSeqNumber) {
           _store.put(key, lsa);
+          toKeep.add(lsa);
         }
         // ignore if the sequence number is lower
       } else {
         _store.put(key, lsa);
+        toKeep.add(lsa);
       }
     }
+    packet.lsaArray = toKeep;
+    return packet;
   }
 
   //initialize the linkstate database by adding an entry about the router itself
