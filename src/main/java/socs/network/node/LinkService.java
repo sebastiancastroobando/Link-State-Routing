@@ -14,6 +14,7 @@ public class LinkService {
     public Object LSDLock;
     public Router router;
     public int selfIndex;
+    private Object sendLock = new Object();
 
     public Thread linkServiceThread;
 
@@ -32,8 +33,10 @@ public class LinkService {
     public boolean send(SOSPFPacket packet) {
         boolean ret = false;
         try {
-          link.out.writeObject(packet);
-          link.out.flush();
+          synchronized(sendLock) {
+            link.out.writeObject(packet);
+            link.out.flush();
+          }
         } catch (SocketException e) {
           System.out.println("Connection severed, in LinkService.send()");
         } catch (Exception e) {
