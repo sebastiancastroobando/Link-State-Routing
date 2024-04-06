@@ -45,7 +45,7 @@ public class Router {
   }
   
   public void propagation(int ignorePort) {
-    System.out.println("We got into propagation!");
+    System.out.println("We got into propagation! NOT sending to " + ignorePort);
   }
 
   // get available port
@@ -71,7 +71,7 @@ public class Router {
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock, this);
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock, this, port);
   }
 
   // updates linkServices if need be, upon get
@@ -355,6 +355,7 @@ public class Router {
       while (linkServices[i].link.sourceRouter.status != RouterStatus.TWO_WAY) {
         try {
           Thread.sleep(100);
+          System.out.println("WAITING IN START");
         } catch (InterruptedException e) {
           
         }
@@ -370,7 +371,7 @@ public class Router {
     
 
     // multicast LSA update packet to all neighbors
-    System.out.println("\nMulticasting LSA update to: " + destinations + "\n>> ");
+    System.out.println("\nMulticasting LSA update to: " + destinations);
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
         continue;

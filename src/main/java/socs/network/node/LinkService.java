@@ -13,14 +13,16 @@ public class LinkService {
     public LinkStateDatabase lsd;
     public Object LSDLock;
     public Router router;
+    public int selfIndex;
 
     public Thread linkServiceThread;
 
-    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock, Router router) {
+    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock, Router router, int selfIndex) {
         this.link = link;
         this.lsd = lsd;
         this.LSDLock = LSDLock;
         this.router = router;
+        this.selfIndex = selfIndex;
     }
 
     public String getConnectedRouterSimluatedIP () {
@@ -108,7 +110,7 @@ public class LinkService {
                 link.targetRouter.status = RouterStatus.TWO_WAY;
                 //link.sourceRouter.status = RouterStatus.TWO_WAY;
                 // Inform user that the router is now in TWO_WAY
-                System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
+                System.out.println("Set " + incomingPacket.srcIP + " STATE to TWO_WAY");
                 // Send HELLO back
                 SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
                 helloPacket.sospfType = 3;
@@ -133,7 +135,7 @@ public class LinkService {
               }
 
               // We wouldn't send the LSAUPDATE here...
-              router.propagation();
+              router.propagation(selfIndex);
               System.out.println(lsd.toString());
             } else {
               // We closed the connection, print for debugging
