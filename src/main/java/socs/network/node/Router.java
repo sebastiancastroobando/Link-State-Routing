@@ -44,10 +44,13 @@ public class Router {
     }
   }
   
-  public void propagation(int ignorePort, SOSPFPacket packet) {
+  // propagates changes to local LSD to neighbors
+  // returns -1 if nothing was sent, and the number of
+  // new LSAs otherwise
+  public int propagation(SOSPFPacket packet) {
     // No changes made
     if (packet.lsaArray.size() == 0) {
-      return;
+      return -1;
     }
     LSA selfLSA = lsd._store.get(rd.simulatedIPAddress);
     for (int i = 0; i < linkServices.length; i++) {
@@ -73,7 +76,8 @@ public class Router {
       linkServices[i].send(packet);
       //}
     }
-    System.out.println("We got into propagation! NOT sending to " + ignorePort);
+    //System.out.println("We got into propagation! NOT sending to " + ignorePort);
+    return packet.lsaArray.size();
   }
 
   // get available port
@@ -99,7 +103,7 @@ public class Router {
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock, this, port);
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock, this);
   }
 
   // updates linkServices if need be, upon get

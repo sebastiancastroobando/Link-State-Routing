@@ -13,17 +13,17 @@ public class LinkService {
     public LinkStateDatabase lsd;
     public Object LSDLock;
     public Router router;
-    public int selfIndex;
+    //public int selfIndex;
     private Object sendLock = new Object();
 
     public Thread linkServiceThread;
 
-    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock, Router router, int selfIndex) {
+    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock, Router router) {
         this.link = link;
         this.lsd = lsd;
         this.LSDLock = LSDLock;
         this.router = router;
-        this.selfIndex = selfIndex;
+        //this.selfIndex = selfIndex;
     }
 
     public String getConnectedRouterSimluatedIP() {
@@ -139,8 +139,10 @@ public class LinkService {
               }
 
               // We wouldn't send the LSAUPDATE here...
-              router.propagation(selfIndex, propagatePacket);
-              System.out.println(lsd.toString());
+              int ret = router.propagation(propagatePacket);
+              if (ret > 0) {
+                System.out.print(lsd.toString() + "\n>> ");
+              }
             } else {
               // We closed the connection, print for debugging
               System.out.println("Connection severed");

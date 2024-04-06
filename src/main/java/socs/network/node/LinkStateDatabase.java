@@ -150,6 +150,7 @@ public class LinkStateDatabase {
   public SOSPFPacket addEntries(SOSPFPacket packet) {
     Vector<LSA> lsaVector = packet.lsaArray;
     Vector<LSA> toKeep = new Vector<LSA>();
+    Vector<LSA> toAdd = new Vector<LSA>();
     for (LSA lsa : lsaVector) {
       String key = lsa.linkStateID;
       if (_store.containsKey(key)) {
@@ -164,6 +165,17 @@ public class LinkStateDatabase {
         _store.put(key, lsa);
         toKeep.add(lsa);
       }
+    }
+    // add entries which were not in the packet already
+    for (String key : _store.keySet()) {
+      for (LSA lsa : toKeep) {
+        if (!key.equals(lsa.linkStateID)) {
+          toAdd.add(lsa);
+        }
+      }
+    }
+    for (LSA lsa : toAdd) {
+      toKeep.add(lsa);
     }
     packet.lsaArray = toKeep;
     return packet;
