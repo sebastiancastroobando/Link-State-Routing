@@ -12,13 +12,15 @@ public class LinkService {
     public Link link;
     public LinkStateDatabase lsd;
     public Object LSDLock;
+    public Router router;
 
     public Thread linkServiceThread;
 
-    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock) {
+    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock, Router router) {
         this.link = link;
         this.lsd = lsd;
         this.LSDLock = LSDLock;
+        this.router = router;
     }
 
     public String getConnectedRouterSimluatedIP () {
@@ -131,7 +133,7 @@ public class LinkService {
               }
 
               // We wouldn't send the LSAUPDATE here...
-
+              router.propagation();
               System.out.println(lsd.toString());
             } else {
               // We closed the connection, print for debugging

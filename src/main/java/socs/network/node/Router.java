@@ -26,7 +26,7 @@ public class Router {
   // We need 4 ports for each router, so we need to keep track of the ports that are being used
   // Request handler thread
   Thread requestHandlerThread;
-  Thread propagationThread;
+  // Thread propagationThread;
 
 
   private volatile String userAnswer = "";
@@ -44,6 +44,10 @@ public class Router {
     }
   }
   
+  public void propagation(int ignorePort) {
+    System.out.println("We got into propagation!");
+  }
+
   // get available port
   private int getAvailablePort() {
     // First step is to close any severe connections
@@ -67,7 +71,7 @@ public class Router {
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock);
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock, this);
   }
 
   // updates linkServices if need be, upon get
@@ -201,9 +205,6 @@ public class Router {
   }
 
 
-  public void propagationHandler() {
-
-  }
   /**
    * process request from the remote router. 
    * For example: when router2 tries to attach router1. Router1 can decide whether it will accept this request. 
@@ -315,14 +316,8 @@ public class Router {
       
     });
 
-    propagationThread = new Thread(new Runnable() {
-      public void run() {
-        propagationHandler();
-      }
-    });
-    // Here we can do some checks to see if the thread is alive and more!
     requestHandlerThread.start();
-    propagationThread.start();
+
   }
 
   /**
@@ -475,8 +470,8 @@ public class Router {
     try{
       requestHandlerThread.interrupt();
       requestHandlerThread.join();
-      propagationThread.interrupt();
-      propagationThread.join();
+      // propagationThread.interrupt();
+      // propagationThread.join();
     } catch (InterruptedException e) {
         return;
     }
