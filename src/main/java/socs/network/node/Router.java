@@ -339,6 +339,9 @@ public class Router {
         continue;
       }
       // Maybe we do some checks here to see if the link service is alive and link
+      if (linkServices[i].link.targetRouter.status == RouterStatus.TWO_WAY) {
+        continue;
+      }
 
       // Create a new HELLO packet
       SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[i].link.targetRouter.simulatedIPAddress);

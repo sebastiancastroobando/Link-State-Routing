@@ -142,7 +142,7 @@ public class LinkStateDatabase {
   public void addEntries(Vector<LSA> lsaVector) {
     for (LSA lsa : lsaVector) {
       String key = lsa.linkStateID;
-      if (_store.containsKey(key) && !key.equals(rd.simulatedIPAddress)) {
+      if (_store.containsKey(key)) {
         LSA storedLSA = _store.get(key);
         // check if the sequence number is higher
         if (storedLSA.lsaSeqNumber < lsa.lsaSeqNumber) {
