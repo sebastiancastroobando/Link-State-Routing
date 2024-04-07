@@ -13,17 +13,15 @@ public class LinkService {
     public LinkStateDatabase lsd;
     public Object LSDLock;
     public Router router;
-    //public int selfIndex;
     private Object sendLock = new Object();
 
     public Thread linkServiceThread;
 
-    public LinkService(Link link, LinkStateDatabase lsd, Object LSDLock, Router router) {
+    public LinkService(Link link, Router router) {
         this.link = link;
-        this.lsd = lsd;
-        this.LSDLock = LSDLock;
+        this.lsd = router.lsd;
+        this.LSDLock = router.LSDLock;
         this.router = router;
-        //this.selfIndex = selfIndex;
     }
 
     public String getConnectedRouterSimluatedIP() {

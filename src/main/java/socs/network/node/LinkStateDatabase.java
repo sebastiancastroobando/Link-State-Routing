@@ -28,29 +28,6 @@ public class LinkStateDatabase {
     return lsaVector;
   }
 
-  // We will receive a vector of LSAs from a neighbor router
-  // We need to add each LSA to our database
-  /*public void addLSAVector(Vector<LSA> LSAVector) {
-    // for each LSA in the vector, add it to the database
-    // if the sequence number is higher than the one we have
-    for (LSA lsa : LSAVector) {
-      if (lsa == null) {
-        continue;
-      }
-      // if we don't have an entry for this LSA, add it
-      if (!_store.containsKey(lsa.linkStateID)) {
-        _store.put(lsa.linkStateID, lsa);
-      } else {    
-        // if we have an entry for this LSA, check the sequence number
-        LSA currentLSA = _store.get(lsa.linkStateID);
-        if (lsa.lsaSeqNumber > currentLSA.lsaSeqNumber) {
-          // if the new LSA has a higher sequence number, update the entry
-          _store.put(lsa.linkStateID, lsa);
-        }
-      }
-    }
-  }*/
-
   /**
    * output the shortest path from this router to the destination with the given IP address
    */

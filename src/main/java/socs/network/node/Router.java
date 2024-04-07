@@ -12,26 +12,25 @@ import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 
-import java.util.Vector;
-
 public class Router {
 
   protected LinkStateDatabase lsd;
+  // Lock for the Link State Database used for synchronization
   public Object LSDLock = new Object();
 
   RouterDescription rd = new RouterDescription();
 
-  //assuming that all routers are with 4 ports
+  // Array of link services
   LinkService[] linkServices = new LinkService[4];
-  // We need 4 ports for each router, so we need to keep track of the ports that are being used
+
   // Request handler thread
   Thread requestHandlerThread;
-  // Thread propagationThread;
 
-
+  // Object to keep track of the user's answer to the attach request ----------
   private volatile String userAnswer = "";
   private volatile boolean attachmentInProgess = false;
   private Object attachLock = new Object();
+  // --------------------------------------------------------------------------
 
   // Helper methods -----------------------------------------------------------
 
@@ -103,7 +102,7 @@ public class Router {
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), lsd, LSDLock, this);
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), this);
   }
 
   // updates linkServices if need be, upon get
@@ -117,7 +116,6 @@ public class Router {
   }
 
   // --------------------------------------------------------------------------
-  public Router(){}
 
   public Router(Configuration config) {
     rd.simulatedIPAddress = config.getString("socs.network.router.ip");
@@ -422,8 +420,6 @@ public class Router {
     }
   }
 
-  
-
   /**
    * attach the link to the remote router, which is identified by the given simulated ip;
    * to establish the connection via socket, you need to indentify the process IP and process Port;
@@ -485,6 +481,12 @@ public class Router {
         System.out.println("Port " + i + " : " + cur_linkserv.link.targetRouter.simulatedIPAddress + " (" + cur_linkserv.link.targetRouter.status + ")");
       }
     }
+  }
+
+  public void printLinkStateDatabase() {
+    // Print the link state database
+    System.out.println("Link State ID (seq num) " + "\t" + "Links");
+    System.out.println(lsd.toString());
   }
 
   /**
@@ -565,6 +567,8 @@ public class Router {
         } else if (command.equals("neighbors")) {
           //output neighbors
           processNeighbors();
+        } else if (command.equals("lsd")) {
+          printLinkStateDatabase();
         }
         else {
           System.out.println("Invalid argument");
