@@ -336,18 +336,11 @@ public class Router {
     }
   }
 
-  // TODO : function name is misleading, should be startRequestHandler. Also, is there another way to start the thread?
-  public void start() {
+  // Start the request handler thread 
+  public void startRequestHandler() {
     // Start the request handler thread
-    requestHandlerThread = new Thread(new Runnable() {
-      public void run() {
-        requestHandler();
-      }
-      
-    });
-
+    requestHandlerThread = new Thread(this::requestHandler);
     requestHandlerThread.start();
-
   }
 
   /**
@@ -518,6 +511,9 @@ public class Router {
   }
 
   public void terminal() {
+    // Start the request handler thread
+    startRequestHandler();
+
     try {
       InputStreamReader isReader = new InputStreamReader(System.in);
       BufferedReader br = new BufferedReader(isReader);
