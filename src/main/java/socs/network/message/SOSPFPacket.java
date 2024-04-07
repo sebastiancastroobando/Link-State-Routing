@@ -2,7 +2,6 @@ package socs.network.message;
 
 import java.io.*;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SOSPFPacket implements Serializable {
 

@@ -46,37 +46,18 @@ public class Router {
   // propagates changes to local LSD to neighbors
   // returns -1 if nothing was sent, and the number of
   // new LSAs otherwise
-  public int propagation(SOSPFPacket packet) {
-    // No changes made
-    if (packet.lsaArray.size() == 0) {
-      return -1;
-    }
-    LSA selfLSA = lsd._store.get(rd.simulatedIPAddress);
+  public void propagation(SOSPFPacket packet, int ignorePort) {
+    // We want to propagate the packet to all neighbors except the one that sent it
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
         continue;
       }
-      // fill self LSA if # neighbors in linkServices does not match LSD
-      if (selfLSA.links.size() != linkServices.length + 1) {
-        LSA newLSA = lsd.addLinkToSelfLSA(linkServices[i], i);
-        if (newLSA == null) {
-          continue;
-        }
-        // need to modify packet
-        packet.lsaArray.add(newLSA);
+      if (i != ignorePort) {
+        packet.dstIP = linkServices[i].getTargetIP();
+        packet.neighborID = linkServices[i].getTargetIP();
+        linkServices[i].send(packet);
       }
     }
-    for (int i = 0; i < linkServices.length; i++) {
-      if (linkServices[i] == null) {
-        continue;
-      }
-      // propagate packet to neighbors
-      //if (i != ignorePort) {
-      linkServices[i].send(packet);
-      //}
-    }
-    //System.out.println("We got into propagation! NOT sending to " + ignorePort);
-    return packet.lsaArray.size();
   }
 
   // get available port
@@ -102,7 +83,7 @@ public class Router {
     remoteRouter.processPortNumber = processPort;
     remoteRouter.simulatedIPAddress = simIP;
 
-    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), this);
+    linkServices[port] = new LinkService(new Link(rd, remoteRouter, socket, in, out), this, port);
   }
 
   // updates linkServices if need be, upon get
@@ -179,7 +160,9 @@ public class Router {
    
     // Remove the link from the self LSA in the link state database
     synchronized(LSDLock) {
+      // remove the link from the self LSA
       lsd.removeLinkFromSelfLSA(targetIP);
+      
     }
     // Get the LSA update packet
     SOSPFPacket LSAUpdatePacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, null);
@@ -406,8 +389,9 @@ public class Router {
 
       while (linkServices[i].link.sourceRouter.status != RouterStatus.TWO_WAY) {
         try {
+          // We are waiting to get the confirmation that the other router is in TWO_WAY
+          // this happens when the other router sends a HELLO back and we set sourceRouter to TWO_WAY
           Thread.sleep(100);
-          System.out.println("WAITING IN START");
         } catch (InterruptedException e) {
           
         }

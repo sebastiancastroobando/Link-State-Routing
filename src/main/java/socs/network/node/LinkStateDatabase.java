@@ -41,11 +41,9 @@ public class LinkStateDatabase {
      * 
      * This would use Dijkstra's algorithm. However, there are no weights on the edges. 
      * Thus, Dijkstra's algorithm would be the same as BFS.
+     * 
+     * The IP may not be a key in the LSD, it might be a neighbor of a key we have in the LSD.
      */
-    // first check if the destinationIP is in the LSD
-    if (!_store.containsKey(destinationIP)) {
-      return "Destination IP not found in LSD. Try again later;";
-    }
 
     // Check if we are detecting ourselves
     if (destinationIP.equals(rd.simulatedIPAddress)) {
@@ -60,8 +58,19 @@ public class LinkStateDatabase {
         String currentNode = queue.poll();
         LSA currentLSA = _store.get(currentNode);
 
+        if (currentLSA == null) {
+            // This router has no LSA, skip. It might not happen but just in case
+            continue;
+        }
+
         for (LinkDescription ld : currentLSA.links) {
             String neighbor = ld.linkID;
+            // Check if neighbor is the destination
+            if (neighbor.equals(destinationIP)) {
+                prev.put(neighbor, currentNode);
+                queue.clear();
+                break;
+            }
             // Check if the neighbor has not been visited
             if (!prev.containsKey(neighbor) && !neighbor.equals(rd.simulatedIPAddress)) {
                 queue.add(neighbor);
@@ -74,6 +83,11 @@ public class LinkStateDatabase {
                 }
             }
         }
+    }
+
+    // If the destination is not in the prev map, then there is no path
+    if (!prev.containsKey(destinationIP)) {
+        return "Sorry, no path to destination IP found within the link state database;";
     }
 
     LinkedList<String> path = new LinkedList<>();
@@ -133,37 +147,49 @@ public class LinkStateDatabase {
     _store.put(rd.simulatedIPAddress, selfLSA);
   }
 
+  public void addNeighborToSelfLSA(String targetIP, int portNum) {
+    // get the current router's LSA
+    LSA selfLSA = _store.get(rd.simulatedIPAddress);
+    // make sure we are not adding duplicates
+    for (LinkDescription ld : selfLSA.links) {
+      // if the linkID matches, return
+      if (ld.linkID.equals(targetIP)) {
+        return;
+      }
+    }
+    // Create a linkDescription from the linkService to add to the LSA
+    LinkDescription link = new LinkDescription();
+    link.linkID = targetIP;
+    link.portNum = portNum;
+
+    // Add the link to the LSA
+    selfLSA.links.add(link);
+
+    // increment the sequence number
+    selfLSA.lsaSeqNumber += 1;
+
+    // update the LSA in the store
+    _store.put(rd.simulatedIPAddress, selfLSA);
+  }
+
   public SOSPFPacket addEntries(SOSPFPacket packet) {
     Vector<LSA> lsaVector = packet.lsaArray;
-    Vector<LSA> toKeep = new Vector<LSA>();
-    Vector<LSA> toAdd = new Vector<LSA>();
+
+    // First, check if the LSA is already in the store
     for (LSA lsa : lsaVector) {
       String key = lsa.linkStateID;
       if (_store.containsKey(key)) {
-        LSA storedLSA = _store.get(key);
-        // check if the sequence number is higher
-        if (storedLSA.lsaSeqNumber < lsa.lsaSeqNumber) {
+        // Check if the sequence number is greater
+        if (_store.get(key).lsaSeqNumber < lsa.lsaSeqNumber) {
+          // Update the entry
           _store.put(key, lsa);
-          toKeep.add(lsa);
         }
-        // ignore if the sequence number is lower
       } else {
+        // Add it as a new entry
         _store.put(key, lsa);
-        toKeep.add(lsa);
       }
     }
-    // add entries which were not in the packet already
-    for (String key : _store.keySet()) {
-      for (LSA lsa : toKeep) {
-        if (!key.equals(lsa.linkStateID)) {
-          toAdd.add(lsa);
-        }
-      }
-    }
-    for (LSA lsa : toAdd) {
-      toKeep.add(lsa);
-    }
-    packet.lsaArray = toKeep;
+    packet.lsaArray = lsaVector;
     return packet;
   }
 

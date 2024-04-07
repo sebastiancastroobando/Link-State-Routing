@@ -9,6 +9,8 @@ public class LinkService {
   public Link link;
   // Router that the service is running on
   public Router router;
+  // Port number on which LinkService is running
+  public int runningPort;
 
   // Link State Database
   public LinkStateDatabase lsd;
@@ -19,11 +21,12 @@ public class LinkService {
 
   public Thread linkServiceThread;
 
-  public LinkService(Link link, Router router) {
+  public LinkService(Link link, Router router, int runningPort) {
       this.link = link;
       this.lsd = router.lsd;
       this.LSDLock = router.LSDLock;
       this.router = router;
+      this.runningPort = runningPort;
   }
 
   public String getTargetIP() {
@@ -127,7 +130,26 @@ public class LinkService {
             // Inform user that the router is quitting
             System.out.print("\nReceived QUIT from " + incomingPacket.srcIP + ". Closing connection.\n>> ");
             // The thread has to close itself
+
+            // We will have to send a LSAUPDATE packet to propagate the changes
+            SOSPFPacket LSAUpdatePacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, null);
+            LSAUpdatePacket.sospfType = 6;
+
+            // We need to lock the LSD before removing the neighbor
+            synchronized(LSDLock) {
+              // Remove the neighbor from the self LSA
+              lsd.removeLinkFromSelfLSA(getTargetIP());
+              LSAUpdatePacket.lsaArray = lsd.getLSAVector();
+            }
+
+            // Close the connection
             closeConnection();
+
+            // We want to create a LSAUPDATE packet to propagate the changes
+            System.out.print("\nMulticasting LSA update to all neighbors;\n>> ");
+            router.propagation(LSAUpdatePacket, runningPort);
+            
+            // exit the thread
             return;
           } else if (incomingPacket.sospfType == 6) {
             // Inform user that the router has received an LSA update packet
@@ -136,14 +158,16 @@ public class LinkService {
             // Before adding entry, we need to lock the LSD. 
             SOSPFPacket propagatePacket;
             synchronized(LSDLock) {
+              // When we receive a LSA update, we can start by making sure that
+              // the neighbor that sent us the LSA is in our "self" LSA
+              lsd.addNeighborToSelfLSA(getTargetIP(), runningPort);
+
+              // Add the entries to the LSD
               propagatePacket = lsd.addEntries(incomingPacket);
             }
 
             // We wouldn't send the LSAUPDATE here...
-            int ret = router.propagation(propagatePacket);
-            if (ret > 0) {
-              System.out.print(lsd.toString() + "\n>> ");
-            }
+            router.propagation(propagatePacket, runningPort);
           } else {
             // We closed the connection, print for debugging
             System.out.println("Connection severed");
