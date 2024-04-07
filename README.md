@@ -22,14 +22,17 @@ Note that there are 7 router configurations in the `conf` directory. You can run
 
 #### Topology 1 - Showing cyclic handling behavior
 In this topology, we want to show how the routers handle cyclic paths. [watch video here]()
+
 ![topology1](topology1.png)
 
 #### Topology 2 - Simulating link failure
 In this topology, we want to show how the routers handle link failure. [watch video here]()
+
 ![topology2](topology2.png)
 
 #### Topology 3 - Big network
 In this topology, we want to show how the routers handle communications within a big network. [watch video here]()
+
 ![topology3](topology3.png)
 
 ### Contributions disclosure
