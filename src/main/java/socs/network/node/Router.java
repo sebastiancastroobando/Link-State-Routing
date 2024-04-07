@@ -391,10 +391,8 @@ public class Router {
       lsd.addLinkToSelfLSA(linkServices[i], i);
 
       // Add the destination to the destinations string
-      destinations += linkServices[i].getConnectedRouterSimluatedIP() + "; ";
+      destinations += linkServices[i].getTargetIP() + "; ";
     }
-
-    
 
     // multicast LSA update packet to all neighbors
     System.out.println("\nMulticasting LSA update to: " + destinations);
@@ -403,8 +401,8 @@ public class Router {
         continue;
       }
       // Set the destination IP to the connected router's simulated IP
-      LSAUpdatePacket.dstIP = linkServices[i].getConnectedRouterSimluatedIP();
-      LSAUpdatePacket.neighborID = linkServices[i].getConnectedRouterSimluatedIP();
+      LSAUpdatePacket.dstIP = linkServices[i].getTargetIP();
+      LSAUpdatePacket.neighborID = linkServices[i].getTargetIP();
 
       // Get vector of LSA's from the link state database
       LSAUpdatePacket.lsaArray = lsd.getLSAVector();
@@ -479,7 +477,7 @@ public class Router {
   public void printLinkStateDatabase() {
     // Print the link state database
     System.out.println("Link State ID (seq num) " + "\t" + "Links");
-    System.out.println(lsd.toString());
+    System.out.print(lsd.toString());
   }
 
   /**

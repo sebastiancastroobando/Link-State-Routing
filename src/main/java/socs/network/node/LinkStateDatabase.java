@@ -5,6 +5,8 @@ import socs.network.message.LinkDescription;
 import socs.network.message.SOSPFPacket;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Vector;
 
 public class LinkStateDatabase {
@@ -32,65 +34,58 @@ public class LinkStateDatabase {
    * output the shortest path from this router to the destination with the given IP address
    */
   public String getShortestPath(String destinationIP) {
-    // Dijkstra's algorithm
-    // Pseudocode from https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-
-    // The set of routers that we have already found the shortest path to
-    Vector<String> S = new Vector<String>();
-    // The set of routers that we have not found the shortest path to
-    Vector<String> Q = new Vector<String>();
-    // The set of routers that we have found the shortest path to
-    HashMap<String, String> previous = new HashMap<String, String>();
-    // The set of routers that we have found the shortest path to
-    HashMap<String, Integer> distance = new HashMap<String, Integer>();
-
-    // Initialize the distance to all routers to infinity
-    for (String router : _store.keySet()) {
-      distance.put(router, Integer.MAX_VALUE);
-      Q.add(router);
+    /**
+     * Our LSD holds an LSA for each router in the network. Each LSA contains the direct 
+     * neighbors of the router. We can use this information to find the shortest path to
+     * the destinationIP.
+     * 
+     * We will use Dijkstra's algorithm. However, there are no weights on the edges. This
+     * means that Dijkstra will run as BFS. 
+     */
+    // first check if the destinationIP is in the LSD
+    if (!_store.containsKey(destinationIP)) {
+      return "Destination IP not found in LSD. Try again later;";
     }
 
-    // The distance to ourself is 0
-    distance.put(rd.simulatedIPAddress, 0);
+    // Check if we are detecting ourselves
+    if (destinationIP.equals(rd.simulatedIPAddress)) {
+      return "Destination IP is the same as the router's IP. No path needed;";
+    }
 
-    // While there are still routers we haven't found the shortest path to
-    while (!Q.isEmpty()) {
-      // Find the router in Q with the smallest distance
-      String u = null;
-      int minDistance = Integer.MAX_VALUE;
-      for (String router : Q) {
-        if (distance.get(router) < minDistance) {
-          u = router;
-          minDistance = distance.get(router);
+    HashMap<String, String> prev = new HashMap<>();
+    Queue<String> queue = new LinkedList<>();
+    queue.add(rd.simulatedIPAddress); // Start BFS from the router's simulated IP
+
+    while (!queue.isEmpty()) {
+        String currentNode = queue.poll();
+        LSA currentLSA = _store.get(currentNode);
+
+        for (LinkDescription ld : currentLSA.links) {
+            String neighbor = ld.linkID;
+            // Check if the neighbor has not been visited
+            if (!prev.containsKey(neighbor) && !neighbor.equals(rd.simulatedIPAddress)) {
+                queue.add(neighbor);
+                prev.put(neighbor, currentNode); // Mark as visited by adding to prev
+
+                if (neighbor.equals(destinationIP)) {
+                    // Destination found, exit the loop
+                    queue.clear();
+                    break;
+                }
+            }
         }
-      }
-
-      // Remove u from Q
-      Q.remove(u);
-      // Add u to S
-      S.add(u);
-
-      // For each neighbor v of u
-      LSA uLSA = _store.get(u);
-      for (LinkDescription link : uLSA.links) {
-        String v = link.linkID;
-        int alt = distance.get(u) + 1;
-        if (alt < distance.get(v)) {
-          distance.put(v, alt);
-          previous.put(v, u);
-        }
-      }
     }
 
-    // Reconstruct the path
-    String path = "";
-    String u = destinationIP;
-    while (previous.containsKey(u)) {
-      path = u + " -> " + path;
-      u = previous.get(u);
+    if (!prev.containsKey(destinationIP)) {
+        return "No path found to destination IP. Try again later;";
     }
 
-    return path;
+    LinkedList<String> path = new LinkedList<>();
+    for (String at = destinationIP; at != null; at = prev.get(at)) {
+        path.addFirst(at);
+    }
+
+    return String.join(" -> ", path);
   }
 
   /**
@@ -103,14 +98,14 @@ public class LinkStateDatabase {
     // make sure we are not adding duplicates
     for (LinkDescription ld : selfLSA.links) {
       // if the linkID matches, return
-      if (ld.linkID.equals(linkService.getConnectedRouterSimluatedIP())) {
+      if (ld.linkID.equals(linkService.getTargetIP())) {
         return null;
       }
     }
     // Create a linkDescription from the linkService to add to the LSA
     LinkDescription link = new LinkDescription();
 
-    link.linkID = linkService.getConnectedRouterSimluatedIP();
+    link.linkID = linkService.getTargetIP();
     link.portNum = portNum;
     
     // Add the link to the LSA
