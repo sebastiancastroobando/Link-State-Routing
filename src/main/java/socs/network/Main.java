@@ -11,7 +11,7 @@ public class Main {
       System.exit(1);
     }
     Router r = new Router(new Configuration(args[0]));
-    
+
     // We need to start the terminal thread which is the main thread
     r.terminal();
   }

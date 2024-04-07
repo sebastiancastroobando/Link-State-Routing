@@ -336,7 +336,7 @@ public class Router {
     }
   }
 
-  // Start the request handler thread 
+  // Start the request handler thread for the router
   public void startRequestHandler() {
     // Start the request handler thread
     requestHandlerThread = new Thread(this::requestHandler);
@@ -501,8 +501,6 @@ public class Router {
     try{
       requestHandlerThread.interrupt();
       requestHandlerThread.join();
-      // propagationThread.interrupt();
-      // propagationThread.join();
     } catch (InterruptedException e) {
         return;
     }

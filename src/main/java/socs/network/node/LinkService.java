@@ -73,7 +73,8 @@ public class LinkService {
       this.linkServiceThread = new Thread(service);
       this.linkServiceThread.start();
     }
-    // Stop
+    
+    // Stop thread on the link service
     public void stopThread() {
       this.linkServiceThread.interrupt();
       try {
@@ -111,7 +112,7 @@ public class LinkService {
                 link.targetRouter.status = RouterStatus.TWO_WAY;
                 //link.sourceRouter.status = RouterStatus.TWO_WAY;
                 // Inform user that the router is now in TWO_WAY
-                System.out.println("Set " + incomingPacket.srcIP + " STATE to TWO_WAY");
+                System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
                 // Send HELLO back
                 SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
                 helloPacket.sospfType = 3;
@@ -146,7 +147,12 @@ public class LinkService {
               System.out.println("Connection severed");
             }
           } else {
-            // Received a null packet, should we close the connection?
+            // If we receive a null packet, we should close the connection
+            System.out.print("\nConnection severed with " + link.targetRouter.simulatedIPAddress + ". Closing connection.\n>> ");
+            closeConnection();
+
+            // TODO - LSA update? But this is extra stuff since we would use quit function
+            return;
           }
         }
         closeConnection();
