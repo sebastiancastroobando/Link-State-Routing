@@ -337,7 +337,7 @@ public class Router {
   }
 
   // Start the request handler thread for the router
-  public void startRequestHandler() {
+  public void startRequestHandlerThread() {
     // Start the request handler thread
     requestHandlerThread = new Thread(this::requestHandler);
     requestHandlerThread.start();
@@ -440,17 +440,7 @@ public class Router {
     }
     // Then start the router
     System.out.println("Starting link connection...");
-    // Create a new HELLO packet
-    SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[portUsed].link.targetRouter.simulatedIPAddress);
-    helloPacket.sospfType = 3; // HELLO type
-
-    // If the link is already set to TWO_WAY, then don't change the status to INIT
-    if (linkServices[portUsed].link.targetRouter.status != RouterStatus.TWO_WAY) {
-      // Set to INIT so we expect a hello back and set to TWO_WAY
-      linkServices[portUsed].link.targetRouter.status = RouterStatus.INIT;
-    }
-    // Send the HELLO packet, first is to confirm two way communication from this router
-    linkServices[portUsed].send(helloPacket);
+    processStart();
   }
 
   /**
@@ -508,8 +498,9 @@ public class Router {
 
   public void terminal() {
     // Start the request handler thread
-    startRequestHandler();
+    startRequestHandlerThread();
 
+    // Start the terminal
     try {
       InputStreamReader isReader = new InputStreamReader(System.in);
       BufferedReader br = new BufferedReader(isReader);

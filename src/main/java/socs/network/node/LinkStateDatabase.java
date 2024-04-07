@@ -36,11 +36,11 @@ public class LinkStateDatabase {
   public String getShortestPath(String destinationIP) {
     /**
      * Our LSD holds an LSA for each router in the network. Each LSA contains the direct 
-     * neighbors of the router. We can use this information to find the shortest path to
-     * the destinationIP.
+     * neighbors of the router. We use this information to find the shortest path to the
+     * destinationIP.
      * 
-     * We will use Dijkstra's algorithm. However, there are no weights on the edges. This
-     * means that Dijkstra will run as BFS. 
+     * This would use Dijkstra's algorithm. However, there are no weights on the edges. 
+     * Thus, Dijkstra's algorithm would be the same as BFS.
      */
     // first check if the destinationIP is in the LSD
     if (!_store.containsKey(destinationIP)) {
@@ -74,10 +74,6 @@ public class LinkStateDatabase {
                 }
             }
         }
-    }
-
-    if (!prev.containsKey(destinationIP)) {
-        return "No path found to destination IP. Try again later;";
     }
 
     LinkedList<String> path = new LinkedList<>();
