@@ -115,6 +115,24 @@ public class LinkStateDatabase {
     return selfLSA;
   }
 
+  public void removeLinkFromSelfLSA(String targetIP) {
+    // get the current router's LSA
+    LSA selfLSA = _store.get(rd.simulatedIPAddress);
+    // make sure we are not adding duplicates
+    for (LinkDescription ld : selfLSA.links) {
+      // if the linkID matches, return
+      if (ld.linkID.equals(targetIP)) {
+        selfLSA.links.remove(ld);
+        break;
+      }
+    }
+    // increment the sequence number
+    selfLSA.lsaSeqNumber += 1;
+
+    // update the LSA in the store
+    _store.put(rd.simulatedIPAddress, selfLSA);
+  }
+
   public SOSPFPacket addEntries(SOSPFPacket packet) {
     Vector<LSA> lsaVector = packet.lsaArray;
     Vector<LSA> toKeep = new Vector<LSA>();

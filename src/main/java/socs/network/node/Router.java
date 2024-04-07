@@ -162,7 +162,10 @@ public class Router {
     }
 
     System.out.println("Disconnecting from " + linkServices[portNumber].link.targetRouter.simulatedIPAddress + ";");
-    
+   
+    // First get IP of the target router via linkServices array
+    String targetIP = linkServices[portNumber].getTargetIP();
+
     // Send QUIT message to the target router
     SOSPFPacket quitPacket = new SOSPFPacket();
     quitPacket.sospfType = 5; // QUIT type
@@ -172,6 +175,29 @@ public class Router {
     linkServices[portNumber].stopThread();
     linkServices[portNumber].closeConnection();
     linkServices[portNumber] = null;
+
+   
+    // Remove the link from the self LSA in the link state database
+    synchronized(LSDLock) {
+      lsd.removeLinkFromSelfLSA(targetIP);
+    }
+    // Get the LSA update packet
+    SOSPFPacket LSAUpdatePacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, null);
+    LSAUpdatePacket.sospfType = 6; // LSAUPDATE type
+    // Get vector of LSA's from the link state database
+    LSAUpdatePacket.lsaArray = lsd.getLSAVector();
+
+    // Multicast LSA update packet to all neighbors
+    System.out.println("\nMulticasting LSA update to all neighbors;");
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        continue;
+      }
+      // Set the destination IP to the connected router's simulated IP
+      LSAUpdatePacket.dstIP = targetIP;
+      LSAUpdatePacket.neighborID = targetIP;
+      linkServices[i].send(LSAUpdatePacket);
+    }
   }
 
   /**

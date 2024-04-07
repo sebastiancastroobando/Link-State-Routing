@@ -15,3 +15,4 @@ Configuration of each router is specified in the `conf` directory.
 
 ## Non-important TODOs 
 -[ ] you can attach twice to the same router. Should we check for this? 
+-[ ] should the synchronization happen over all the LSA update? Because LSA can change between update and moment we get the vector. 
