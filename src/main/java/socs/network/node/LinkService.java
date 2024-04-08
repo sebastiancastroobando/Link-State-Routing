@@ -198,6 +198,10 @@ public class LinkService {
               propagatePacket = lsd.addEntries(incomingPacket);
             }
 
+            if (!lsd.hasChanged(incomingPacket.lsaArray)) {
+              continue;
+            }
+
             // We wouldn't send the LSAUPDATE here...
             router.propagation(propagatePacket, runningPort);
           } else {

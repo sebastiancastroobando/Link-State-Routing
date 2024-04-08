@@ -31,6 +31,25 @@ public class LinkStateDatabase {
     return lsaVector;
   }
 
+  public boolean hasChanged(Vector<LSA> incomingVector) {
+    if (incomingVector.size() != _store.size()) {
+      return true;
+    }
+    for (LSA lsa : incomingVector) {
+      if (lsa == null) {
+        System.out.println("LSA NULL WHEN IT SHOULDNT BE");
+        continue;
+      }
+      if (!_store.containsKey(lsa.linkStateID)) {
+        return true;
+      }
+      if (_store.get(lsa.linkStateID).lsaSeqNumber != lsa.lsaSeqNumber) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * output the shortest path from this router to the destination with the given IP address
    */
