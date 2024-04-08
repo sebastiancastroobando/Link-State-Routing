@@ -25,6 +25,7 @@ public class LinkStateDatabase {
   public Vector<LSA> getLSAVector() {
     Vector<LSA> lsaVector = new Vector<LSA>();
     for (LSA lsa : _store.values()) {
+      System.out.println("For IP: " + lsa.linkStateID + ", we have the seq : " + lsa.lsaSeqNumber);
       lsaVector.add(lsa);
     }
     return lsaVector;
@@ -105,6 +106,7 @@ public class LinkStateDatabase {
   public LSA addLinkToSelfLSA(LinkService linkService, int portNum) {
     // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
+    
     // make sure we are not adding duplicates
     for (LinkDescription ld : selfLSA.links) {
       // if the linkID matches, return
@@ -194,6 +196,9 @@ public class LinkStateDatabase {
       String key = lsa.linkStateID;
       if (_store.containsKey(key)) {
         // Check if the sequence number is greater
+        // for debugging, lsaSeqNum 
+        System.out.println("\nNEW ENTRY : LSA Seq Number: " + lsa.lsaSeqNumber);
+        System.out.println("Store Seq Number: " + _store.get(key).lsaSeqNumber);
         if (_store.get(key).lsaSeqNumber < lsa.lsaSeqNumber) {
           // Update the entry
           System.out.print("--------- We got here -------- ");
@@ -201,6 +206,7 @@ public class LinkStateDatabase {
         }
       } else {
         // Add it as a new entry
+        System.out.println("\nNEW ENTRY : LSA Seq Number: " + lsa.lsaSeqNumber);
         _store.put(key, lsa);
       }
     }
@@ -212,7 +218,7 @@ public class LinkStateDatabase {
   private LSA initLinkStateDatabase() {
     LSA lsa = new LSA();
     lsa.linkStateID = rd.simulatedIPAddress;
-    lsa.lsaSeqNumber = Integer.MIN_VALUE;
+    lsa.lsaSeqNumber = 0;
     LinkDescription ld = new LinkDescription();
     ld.linkID = rd.simulatedIPAddress;
     ld.portNum = -1;

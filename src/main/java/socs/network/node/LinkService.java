@@ -1,6 +1,10 @@
 package socs.network.node;
 import java.io.EOFException;
+import java.io.ObjectInputStream;
 import java.net.SocketException;
+import java.util.Vector;
+
+import socs.network.message.LSA;
 
 import socs.network.message.SOSPFPacket;
 
@@ -159,15 +163,26 @@ public class LinkService {
           } else if (incomingPacket.sospfType == 6) {
             // Inform user that the router has received an LSA update packet
             System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
+            System.out.println("\n----------------------");
+            for (LSA lsa : incomingPacket.lsaArray) {
+              System.out.println(lsa.toString());
+            }
+            System.out.println("----------------------");
             
+            Vector<LSA> incomingLSAs = incomingPacket.lsaArray;
+            System.out.println("\nPrinting the LSAs we got");
+            for(LSA lsa : incomingLSAs) {
+              System.out.println("Seq num : " + lsa.lsaSeqNumber);
+            }
+
             // Before adding entry, we need to lock the LSD. 
             SOSPFPacket propagatePacket;
             synchronized(LSDLock) {
               // When we receive a LSA update, we can start by making sure that
               // the neighbor that sent us the LSA is in our "self" LSA
               lsd.addNeighborToSelfLSA(getTargetIP(), runningPort);
-
               // Add the entries to the LSD
+
               propagatePacket = lsd.addEntries(incomingPacket);
             }
 

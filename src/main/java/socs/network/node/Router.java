@@ -442,6 +442,15 @@ public class Router {
       // Get vector of LSA's from the link state database
       LSAUpdatePacket.lsaArray = lsd.getLSAVector();
 
+      System.out.println("From the start function, we are sending : dstIP" + LSAUpdatePacket.dstIP + " and port number :" + LSAUpdatePacket.srcProcessPort);
+
+      System.out.println("------- About to print LSA vector -----");
+      for (LSA lsa : LSAUpdatePacket.lsaArray) {
+        System.out.println("For the IP: " + lsa.linkStateID + " we got seq num : " + lsa.lsaSeqNumber);
+        System.out.println(lsa.toString());
+      }
+      System.out.println("-----------------------------------------");
+
       linkServices[i].send(LSAUpdatePacket);
     }
   }
