@@ -140,6 +140,7 @@ public class LinkStateDatabase {
       if (ld.linkID.equals(rd.simulatedIPAddress)) {
         lsa.links.remove(ld);
         lsa.lsaSeqNumber += 1;
+        _store.put(targetIP, lsa);
         break;
       }
     }
@@ -153,6 +154,8 @@ public class LinkStateDatabase {
       // if the linkID matches, return
       if (ld.linkID.equals(targetIP)) {
         selfLSA.links.remove(ld);
+        selfLSA.lsaSeqNumber += 1;
+        _store.put(rd.simulatedIPAddress, selfLSA);
         break;
       }
     }
