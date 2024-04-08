@@ -48,12 +48,12 @@ public class Router {
   // returns -1 if nothing was sent, and the number of
   // new LSAs otherwise
   public void propagation(SOSPFPacket packet, int ignorePort) {
-
     // Some links might have been severed, so we need to close them
     closeSeveredConnections();
 
     // Don't propagate if it's our own packet
     if (packet.srcIP.equals(rd.simulatedIPAddress)) {
+      System.out.println("Propagation: Ignoring our own packet;");
       return;
     }
 

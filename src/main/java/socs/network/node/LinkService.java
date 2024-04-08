@@ -152,6 +152,7 @@ public class LinkService {
             // We will have to send a LSAUPDATE packet to propagate the changes
             SOSPFPacket LSAUpdatePacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, null);
             LSAUpdatePacket.sospfType = 6;
+            LSAUpdatePacket.srcIP = incomingPacket.srcIP;
 
             // We need to lock the LSD before removing the neighbor
             synchronized(LSDLock) {
