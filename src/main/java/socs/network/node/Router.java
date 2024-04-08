@@ -47,6 +47,30 @@ public class Router {
   // returns -1 if nothing was sent, and the number of
   // new LSAs otherwise
   public void propagation(SOSPFPacket packet, int ignorePort) {
+
+    // Some links might have been severed, so we need to close them
+    closeSeveredConnections();
+
+    // Don't propagate if it's our own packet
+    if (packet.srcIP.equals(rd.simulatedIPAddress)) {
+      return;
+    }
+
+    // Gather the list of links where we are sending the LSA
+    String destinations = "";
+    for (int i = 0; i < linkServices.length; i++) {
+      if (linkServices[i] == null) {
+        continue;
+      }
+      if (i != ignorePort) {
+        destinations += linkServices[i].getTargetIP() + "; ";
+      }
+    }
+    if (destinations.equals("")) {
+      destinations = "(No other routers to send to);";
+    }
+    System.out.print("\nMulticasting LSA update to: " + destinations + "\n>> ");
+
     // We want to propagate the packet to all neighbors except the one that sent it
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] == null) {
@@ -151,6 +175,7 @@ public class Router {
     SOSPFPacket quitPacket = new SOSPFPacket();
     quitPacket.sospfType = 5; // QUIT type
     quitPacket.srcIP = rd.simulatedIPAddress;
+    quitPacket.dstIP = targetIP;
     linkServices[portNumber].send(quitPacket);
     // Close the connection
     linkServices[portNumber].stopThread();
@@ -162,7 +187,7 @@ public class Router {
     synchronized(LSDLock) {
       // remove the link from the self LSA
       lsd.removeLinkFromSelfLSA(targetIP);
-      
+      lsd.removeSelfFromLink(targetIP);
     }
     // Get the LSA update packet
     SOSPFPacket LSAUpdatePacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, null);
@@ -371,9 +396,9 @@ public class Router {
         continue;
       }
       // Maybe we do some checks here to see if the link service is alive and link
-      if (linkServices[i].link.targetRouter.status == RouterStatus.TWO_WAY) {
-        continue;
-      }
+      // if (linkServices[i].link.targetRouter.status == RouterStatus.TWO_WAY) {
+      //  continue;
+      //}
 
       // Create a new HELLO packet
       SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[i].link.targetRouter.simulatedIPAddress);
@@ -387,7 +412,7 @@ public class Router {
       // Send the HELLO packet, first is to confirm two way communication from this router
       linkServices[i].send(helloPacket);
 
-      while (linkServices[i].link.sourceRouter.status != RouterStatus.TWO_WAY) {
+      while (linkServices[i].link.targetRouter.status != RouterStatus.TWO_WAY) {
         try {
           // We are waiting to get the confirmation that the other router is in TWO_WAY
           // this happens when the other router sends a HELLO back and we set sourceRouter to TWO_WAY
@@ -449,7 +474,7 @@ public class Router {
       return;
     }
     // Then start the router
-    System.out.println("Starting link connection...");
+    System.out.println("Starting link connection. Sending HELLO to all neighbors...");
     processStart();
   }
 

@@ -129,6 +129,20 @@ public class LinkStateDatabase {
     return selfLSA;
   }
 
+  public void removeSelfFromLink (String targetIP) {
+    // Get the LSA entry
+    LSA lsa = _store.get(targetIP);
+
+    // traverse the linked list
+    for (LinkDescription ld : lsa.links) {
+      if (ld.linkID.equals(rd.simulatedIPAddress)) {
+        lsa.links.remove(ld);
+        lsa.lsaSeqNumber += 1;
+        break;
+      }
+    }
+  }
+
   public void removeLinkFromSelfLSA(String targetIP) {
     // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
@@ -182,6 +196,7 @@ public class LinkStateDatabase {
         // Check if the sequence number is greater
         if (_store.get(key).lsaSeqNumber < lsa.lsaSeqNumber) {
           // Update the entry
+          System.out.print("--------- We got here -------- ");
           _store.put(key, lsa);
         }
       } else {

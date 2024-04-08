@@ -111,17 +111,20 @@ public class LinkService {
               helloPacket.sospfType = 3;
               send(helloPacket);
             } else if (link.targetRouter.status == RouterStatus.INIT) {
-              // Inform user that the router has received a HELLO
-              System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
-              // Set router to TWO_WAY
-              link.targetRouter.status = RouterStatus.TWO_WAY;
-              //link.sourceRouter.status = RouterStatus.TWO_WAY;
-              // Inform user that the router is now in TWO_WAY
-              System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
-              // Send HELLO back
-              SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
-              helloPacket.sospfType = 3;
-              send(helloPacket);
+              // Grab send lock, is this necesasry?
+              synchronized(sendLock) {
+                // Inform user that the router has received a HELLO
+                System.out.println("\nReceived HELLO from " + incomingPacket.srcIP);
+                // Set router to TWO_WAY
+                link.targetRouter.status = RouterStatus.TWO_WAY;
+
+                // Inform user that the router is now in TWO_WAY
+                System.out.print("Set " + incomingPacket.srcIP + " STATE to TWO_WAY\n>> ");
+                // Send HELLO back
+                SOSPFPacket helloPacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, incomingPacket.srcIP);
+                helloPacket.sospfType = 3;
+                send(helloPacket);
+              }
             } else if (link.targetRouter.status == RouterStatus.TWO_WAY) {
               // Should we inform the user that the router is already in TWO_WAY?
               link.sourceRouter.status = RouterStatus.TWO_WAY;
@@ -138,7 +141,9 @@ public class LinkService {
             // We need to lock the LSD before removing the neighbor
             synchronized(LSDLock) {
               // Remove the neighbor from the self LSA
-              lsd.removeLinkFromSelfLSA(getTargetIP());
+              String quittingIP = incomingPacket.srcIP;
+              lsd.removeLinkFromSelfLSA(quittingIP);
+              lsd.removeSelfFromLink(quittingIP);
               LSAUpdatePacket.lsaArray = lsd.getLSAVector();
             }
 
@@ -153,7 +158,7 @@ public class LinkService {
             return;
           } else if (incomingPacket.sospfType == 6) {
             // Inform user that the router has received an LSA update packet
-            System.out.print("\nReceived LSA update from " + incomingPacket.srcIP + "\n>> ");
+            System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
             
             // Before adding entry, we need to lock the LSD. 
             SOSPFPacket propagatePacket;
