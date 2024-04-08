@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.StandardSocketOptions;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 
@@ -234,7 +235,8 @@ public class Router {
     try {
       // Create a socket to connect to target router (processIP, processPort)
       Socket socket = new Socket(processIP, processPort);
-    
+      socket.setOption(StandardSocketOptions.SO_REUSEPORT, true);
+      socket.setOption(StandardSocketOptions.SO_REUSEADDR, true);
       // Create input and output streams
       ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
       ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
@@ -296,6 +298,8 @@ public class Router {
             // if the timeout is reached, a SocketTimeoutException is thrown 
             // and the loop will continue
             socket = serverSocket.accept();
+            socket.setOption(StandardSocketOptions.SO_REUSEPORT, true);
+            socket.setOption(StandardSocketOptions.SO_REUSEADDR, true);
           } catch (SocketTimeoutException e) {
             if (Thread.currentThread().isInterrupted()) {
                 System.out.println("Server socket interrupted, closing...");
@@ -442,14 +446,14 @@ public class Router {
       // Get vector of LSA's from the link state database
       LSAUpdatePacket.lsaArray = lsd.getLSAVector();
 
-      System.out.println("From the start function, we are sending : dstIP" + LSAUpdatePacket.dstIP + " and port number :" + LSAUpdatePacket.srcProcessPort);
+      /*System.out.println("From the start function, we are sending : dstIP" + LSAUpdatePacket.dstIP + " and port number :" + LSAUpdatePacket.srcProcessPort);
 
       System.out.println("------- About to print LSA vector -----");
       for (LSA lsa : LSAUpdatePacket.lsaArray) {
         System.out.println("For the IP: " + lsa.linkStateID + " we got seq num : " + lsa.lsaSeqNumber);
         System.out.println(lsa.toString());
       }
-      System.out.println("-----------------------------------------");
+      System.out.println("-----------------------------------------");*/
 
       linkServices[i].send(LSAUpdatePacket);
     }

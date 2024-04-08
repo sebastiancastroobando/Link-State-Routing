@@ -134,6 +134,9 @@ public class LinkStateDatabase {
   public void removeSelfFromLink (String targetIP) {
     // Get the LSA entry
     LSA lsa = _store.get(targetIP);
+    if (lsa == null) {
+      return;
+    }
 
     // traverse the linked list
     for (LinkDescription ld : lsa.links) {
@@ -149,6 +152,9 @@ public class LinkStateDatabase {
   public void removeLinkFromSelfLSA(String targetIP) {
     // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
+    if (selfLSA == null) {
+      return;
+    }
     // make sure we are not adding duplicates
     for (LinkDescription ld : selfLSA.links) {
       // if the linkID matches, return
@@ -200,16 +206,14 @@ public class LinkStateDatabase {
       if (_store.containsKey(key)) {
         // Check if the sequence number is greater
         // for debugging, lsaSeqNum 
-        System.out.println("\nNEW ENTRY : LSA Seq Number: " + lsa.lsaSeqNumber);
-        System.out.println("Store Seq Number: " + _store.get(key).lsaSeqNumber);
+        //System.out.println("\nNEW ENTRY : LSA Seq Number: " + lsa.lsaSeqNumber);
+        //System.out.println("Store Seq Number: " + _store.get(key).lsaSeqNumber);
         if (_store.get(key).lsaSeqNumber < lsa.lsaSeqNumber) {
           // Update the entry
-          System.out.print("--------- We got here -------- ");
           _store.put(key, lsa);
         }
       } else {
         // Add it as a new entry
-        System.out.println("\nNEW ENTRY : LSA Seq Number: " + lsa.lsaSeqNumber);
         _store.put(key, lsa);
       }
     }

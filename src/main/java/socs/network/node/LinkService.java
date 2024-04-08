@@ -40,9 +40,15 @@ public class LinkService {
   public boolean send(SOSPFPacket packet) {
       boolean ret = false;
       try {
+        /*for (LSA lsa : packet.lsaArray) {
+          System.out.println("---- IN SEND --");
+          System.out.println(lsa.toString());
+          System.out.println("---------------");
+        }*/
         synchronized(sendLock) {
           link.out.writeObject(packet);
           link.out.flush();
+          link.out.reset();
         }
       } catch (SocketException e) {
         System.out.println("Connection severed, in LinkService.send()");
@@ -57,6 +63,11 @@ public class LinkService {
       SOSPFPacket incomingPacket = null;
       try {
         incomingPacket = (SOSPFPacket) link.in.readObject();
+        /*for (LSA lsa : incomingPacket.lsaArray) {
+          System.out.println("---- IN RECEIVE --");
+          System.out.println(lsa.toString());
+          System.out.println("---------------");
+        }*/
       } catch (SocketException e) {
         return null;
       } catch (EOFException e) {
@@ -162,7 +173,7 @@ public class LinkService {
             return;
           } else if (incomingPacket.sospfType == 6) {
             // Inform user that the router has received an LSA update packet
-            System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
+            /*System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
             System.out.println("\n----------------------");
             for (LSA lsa : incomingPacket.lsaArray) {
               System.out.println(lsa.toString());
@@ -173,7 +184,7 @@ public class LinkService {
             System.out.println("\nPrinting the LSAs we got");
             for(LSA lsa : incomingLSAs) {
               System.out.println("Seq num : " + lsa.lsaSeqNumber);
-            }
+            }*/
 
             // Before adding entry, we need to lock the LSD. 
             SOSPFPacket propagatePacket;
