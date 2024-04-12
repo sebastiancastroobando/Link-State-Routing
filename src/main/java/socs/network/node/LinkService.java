@@ -174,18 +174,7 @@ public class LinkService {
             return;
           } else if (incomingPacket.sospfType == 6) {
             // Inform user that the router has received an LSA update packet
-            /*System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
-            System.out.println("\n----------------------");
-            for (LSA lsa : incomingPacket.lsaArray) {
-              System.out.println(lsa.toString());
-            }
-            System.out.println("----------------------");
-            
-            Vector<LSA> incomingLSAs = incomingPacket.lsaArray;
-            System.out.println("\nPrinting the LSAs we got");
-            for(LSA lsa : incomingLSAs) {
-              System.out.println("Seq num : " + lsa.lsaSeqNumber);
-            }*/
+            System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
 
             // Before adding entry, we need to lock the LSD. 
             SOSPFPacket propagatePacket;

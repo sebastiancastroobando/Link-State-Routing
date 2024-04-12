@@ -1,6 +1,7 @@
 package socs.network.message;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.util.Vector;
 
 public class SOSPFPacket implements Serializable {
@@ -34,6 +35,10 @@ public class SOSPFPacket implements Serializable {
   //used by LSAUPDATE
   public Vector<LSA> lsaArray = null;
 
+  // History of where the packet has been
+  public Vector<String> history = new Vector<String>();
+
+  // Empty constructor for SOSPFPacket, used for certain tests
   public SOSPFPacket() {}
 
   /**
