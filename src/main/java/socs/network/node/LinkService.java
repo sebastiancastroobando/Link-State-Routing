@@ -173,6 +173,14 @@ public class LinkService {
             // exit the thread
             return;
           } else if (incomingPacket.sospfType == 6) {
+
+            // We need to check history to see if we have already received this packet
+            // if we have, we should ignore it
+            if (incomingPacket.history.contains(router.rd.simulatedIPAddress)) {
+              // TODO : think about the order of operations here... Should we really be ignoring the packet at this point?
+              continue;
+            }
+
             // Inform user that the router has received an LSA update packet
             System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);
 
@@ -183,13 +191,15 @@ public class LinkService {
               // the neighbor that sent us the LSA is in our "self" LSA
               lsd.addNeighborToSelfLSA(getTargetIP(), runningPort);
               // Add the entries to the LSD
-
               propagatePacket = lsd.addEntries(incomingPacket);
             }
 
-            if (!lsd.hasChanged(incomingPacket.lsaArray)) {
-              continue;
-            }
+            // Add the router to the history of the packet
+            incomingPacket.history.add(router.rd.simulatedIPAddress);
+
+            //if (!lsd.hasChanged(incomingPacket.lsaArray)) {
+            //  continue;
+            //}
 
             // We wouldn't send the LSAUPDATE here...
             router.propagation(propagatePacket, runningPort);
