@@ -64,7 +64,11 @@ public class Router {
         continue;
       }
       if (i != ignorePort) {
-        destinations += linkServices[i].getTargetIP() + "; ";
+        try {
+          destinations += linkServices[i].getTargetIP() + "; ";
+        } catch (Exception e) {
+          closeSeveredConnections();
+        }
       }
     }
     if (destinations.equals("")) {
@@ -155,7 +159,7 @@ public class Router {
    *
    * @param portNumber the port number which the link attaches at
    */
-  private void processDisconnect(short portNumber) {
+  private void processDisconnect(short portNumber, boolean isFinal) {
     // Check if the port number is valid
     if (portNumber < 0 || portNumber >= linkServices.length) {
       System.out.println("DISCONNECT ERROR: Invalid port number;");
@@ -177,6 +181,7 @@ public class Router {
     quitPacket.sospfType = 5; // QUIT type
     quitPacket.srcIP = rd.simulatedIPAddress;
     quitPacket.dstIP = targetIP;
+    quitPacket.finalMessage = isFinal;
     linkServices[portNumber].send(quitPacket);
     // Close the connection
     linkServices[portNumber].stopThread();
@@ -532,7 +537,7 @@ public class Router {
     // Close all connections using the processDisconnect method for each port with a link service
     for (int i = 0; i < linkServices.length; i++) {
       if (linkServices[i] != null) {
-        processDisconnect((short) i);
+        processDisconnect((short) i, true);
       }
     }
 
@@ -584,7 +589,7 @@ public class Router {
           processDetect(cmdLine[1]);
         } else if (command.startsWith("disconnect ")) {
           String[] cmdLine = command.split(" ");
-          processDisconnect(Short.parseShort(cmdLine[1]));
+          processDisconnect(Short.parseShort(cmdLine[1]), false);
         } else if (command.startsWith("quit")) {
           processQuit();
           break;

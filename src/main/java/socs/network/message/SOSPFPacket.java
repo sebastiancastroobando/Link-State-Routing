@@ -14,6 +14,8 @@ public class SOSPFPacket implements Serializable {
   public String srcIP;
   public String dstIP;
 
+  public Boolean finalMessage = false;
+
   //common header
   /**
    * sosfType = 0: Attach Request

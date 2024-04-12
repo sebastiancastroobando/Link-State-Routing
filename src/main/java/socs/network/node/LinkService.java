@@ -160,6 +160,9 @@ public class LinkService {
               String quittingIP = incomingPacket.srcIP;
               lsd.removeLinkFromSelfLSA(quittingIP);
               lsd.removeSelfFromLink(quittingIP);
+              if (LSAUpdatePacket.finalMessage) {
+                lsd.deleteEntry(quittingIP);
+              }
               LSAUpdatePacket.lsaArray = lsd.getLSAVector();
             }
 

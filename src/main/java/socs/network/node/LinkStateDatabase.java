@@ -125,6 +125,11 @@ public class LinkStateDatabase {
   public LSA addLinkToSelfLSA(LinkService linkService, int portNum) {
     // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
+
+    // safety check
+    if (selfLSA == null) {
+      System.out.println("Problem getting selfLSA, please check addLinkToSelfLSA");
+    }
     
     // make sure we are not adding duplicates
     for (LinkDescription ld : selfLSA.links) {
@@ -148,6 +153,14 @@ public class LinkStateDatabase {
     // update the LSA in the store
     _store.put(rd.simulatedIPAddress, selfLSA);
     return selfLSA;
+  }
+
+  public void deleteEntry(String targetIP) {
+    // safety check
+    if (_store.containsKey(targetIP)) {
+      _store.remove(targetIP);
+    } 
+    return;
   }
 
   public void removeSelfFromLink (String targetIP) {
@@ -194,6 +207,12 @@ public class LinkStateDatabase {
   public void addNeighborToSelfLSA(String targetIP, int portNum) {
     // get the current router's LSA
     LSA selfLSA = _store.get(rd.simulatedIPAddress);
+
+    // safety check
+    if (selfLSA == null) {
+      System.out.println("Problem getting self LSA;\n");
+    }
+
     // make sure we are not adding duplicates
     for (LinkDescription ld : selfLSA.links) {
       // if the linkID matches, return
