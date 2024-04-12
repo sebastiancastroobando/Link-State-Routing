@@ -155,10 +155,12 @@ public class LinkStateDatabase {
     return selfLSA;
   }
 
-  public void deleteEntry(String targetIP) {
+  public void deleteEntry(String quittingIP) {
     // safety check
-    if (_store.containsKey(targetIP)) {
-      _store.remove(targetIP);
+    System.out.println("Attempting to delete: " + quittingIP);
+    if (_store.containsKey(quittingIP)) {
+      System.out.println("DELETING ENTRY: " + quittingIP);
+      _store.remove(quittingIP);
     } 
     return;
   }
@@ -237,6 +239,9 @@ public class LinkStateDatabase {
 
   public SOSPFPacket addEntries(SOSPFPacket packet) {
     Vector<LSA> lsaVector = packet.lsaArray;
+    if (packet.finalMessage) {
+      deleteEntry(packet.srcIP);
+    }
 
     // First, check if the LSA is already in the store
     for (LSA lsa : lsaVector) {

@@ -153,6 +153,7 @@ public class LinkService {
             SOSPFPacket LSAUpdatePacket = new SOSPFPacket(link.sourceRouter.processIPAddress, link.sourceRouter.processPortNumber, link.sourceRouter.simulatedIPAddress, null);
             LSAUpdatePacket.sospfType = 6;
             LSAUpdatePacket.srcIP = incomingPacket.srcIP;
+            LSAUpdatePacket.finalMessage = incomingPacket.finalMessage;
 
             // We need to lock the LSD before removing the neighbor
             synchronized(LSDLock) {
@@ -195,6 +196,7 @@ public class LinkService {
               lsd.addNeighborToSelfLSA(getTargetIP(), runningPort);
               // Add the entries to the LSD
               propagatePacket = lsd.addEntries(incomingPacket);
+              propagatePacket.finalMessage = incomingPacket.finalMessage;
             }
 
             // Add the router to the history of the packet

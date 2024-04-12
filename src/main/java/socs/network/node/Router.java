@@ -210,6 +210,7 @@ public class Router {
       // Set the destination IP to the connected router's simulated IP
       LSAUpdatePacket.dstIP = targetIP;
       LSAUpdatePacket.neighborID = targetIP;
+      LSAUpdatePacket.finalMessage = isFinal;
       linkServices[i].send(LSAUpdatePacket);
     }
   }
