@@ -455,6 +455,9 @@ public class Router {
       }
       System.out.println("-----------------------------------------");*/
 
+      // before sending the LSA update packet, add the current router to SOSPF history
+      LSAUpdatePacket.history.add(rd.simulatedIPAddress);
+
       linkServices[i].send(LSAUpdatePacket);
     }
   }
