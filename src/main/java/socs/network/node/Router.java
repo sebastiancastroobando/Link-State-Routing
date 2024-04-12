@@ -527,6 +527,15 @@ public class Router {
     System.out.print(lsd.toString());
   }
 
+  public void printHelp() {
+    System.out.println("To ATTACH to this router, run: attach " + rd.processIPAddress + " " + rd.processPortNumber + " " + rd.simulatedIPAddress);
+    System.out.println("To CONNECT to this router, connect: connect " + rd.processIPAddress + " " + rd.processPortNumber + " " + rd.simulatedIPAddress);
+    System.out.println("To get information about the LINK STATE DATABASE: lsd");
+    System.out.println("To see NEIGHBORS connected to the current router: neighbors");
+    System.out.println("To DISCONNECT from a neighbor: disconnect {neighbors simulated IP}");
+    System.out.println("To QUIT the program: quit");
+  }
+
   /**
    * disconnect with all neighbors and quit the program
    */
@@ -609,6 +618,8 @@ public class Router {
           processNeighbors();
         } else if (command.equals("lsd")) {
           printLinkStateDatabase();
+        } else if (command.equals("help")) {
+          printHelp();
         }
         else {
           System.out.println("Invalid argument");

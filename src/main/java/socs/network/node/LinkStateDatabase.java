@@ -25,7 +25,6 @@ public class LinkStateDatabase {
   public Vector<LSA> getLSAVector() {
     Vector<LSA> lsaVector = new Vector<LSA>();
     for (LSA lsa : _store.values()) {
-      System.out.println("For IP: " + lsa.linkStateID + ", we have the seq : " + lsa.lsaSeqNumber);
       lsaVector.add(lsa);
     }
     return lsaVector;
