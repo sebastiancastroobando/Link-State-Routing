@@ -515,10 +515,11 @@ public class Router {
 
   public void printHelp() {
     System.out.println("To ATTACH to this router, run: attach " + rd.processIPAddress + " " + rd.processPortNumber + " " + rd.simulatedIPAddress);
-    System.out.println("To CONNECT to this router, connect: connect " + rd.processIPAddress + " " + rd.processPortNumber + " " + rd.simulatedIPAddress);
+    System.out.println("To CONNECT to this router: connect " + rd.processIPAddress + " " + rd.processPortNumber + " " + rd.simulatedIPAddress);
     System.out.println("To get information about the LINK STATE DATABASE: lsd");
     System.out.println("To see NEIGHBORS connected to the current router: neighbors");
-    System.out.println("To DISCONNECT from a neighbor: disconnect {neighbors simulated IP}");
+    System.out.println("To DETECT the shortest path to this router: detect " + rd.simulatedIPAddress);
+    System.out.println("To DISCONNECT from a neighbor: disconnect {port number as shown in the NEIGHBORS}");
     System.out.println("To QUIT the program: quit");
   }
 
