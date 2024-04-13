@@ -1,10 +1,6 @@
 package socs.network.node;
 import java.io.EOFException;
-import java.io.ObjectInputStream;
 import java.net.SocketException;
-import java.util.Vector;
-
-import socs.network.message.LSA;
 
 import socs.network.message.SOSPFPacket;
 

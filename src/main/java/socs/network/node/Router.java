@@ -527,8 +527,6 @@ public class Router {
    * disconnect with all neighbors and quit the program
    */
   private void processQuit() {
-    // TODO : Send Link State Update to all neighbors informing them that this router is going down
-
     // First make sure that that servered connections are closed
     closeSeveredConnections();
     // Close all connections using the processDisconnect method for each port with a link service
