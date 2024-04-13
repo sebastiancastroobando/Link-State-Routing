@@ -169,6 +169,11 @@ public class LinkService {
             if (incomingPacket.history.contains(router.rd.simulatedIPAddress)) {
               continue;
             }
+            
+            // Make sure we are not propagating our own LSAUPDATE packet
+            if (incomingPacket.srcIP.equals(router.rd.simulatedIPAddress)) {
+              continue;
+            }
 
             // Inform user that the router has received an LSA update packet
             System.out.print("\nReceived LSA update from " + incomingPacket.srcIP);

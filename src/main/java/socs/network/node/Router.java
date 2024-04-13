@@ -52,6 +52,7 @@ public class Router {
 
     // Don't propagate if it's our own packet
     if (packet.srcIP.equals(rd.simulatedIPAddress)) {
+      // safety check 
       System.out.println("Propagation: Ignoring our own packet;");
       return;
     }
@@ -81,9 +82,13 @@ public class Router {
         continue;
       }
       if (i != ignorePort) {
-        packet.dstIP = linkServices[i].getTargetIP();
-        packet.neighborID = linkServices[i].getTargetIP();
-        linkServices[i].send(packet);
+        try {
+          packet.dstIP = linkServices[i].getTargetIP();
+          packet.neighborID = linkServices[i].getTargetIP();
+          linkServices[i].send(packet);
+        } catch (Exception e) {
+          closeSeveredConnections();
+        }
       }
     }
   }
