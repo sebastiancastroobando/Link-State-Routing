@@ -18,7 +18,7 @@ To run a router, run the following command in the project root directory:
 Note that there are 7 router configurations in the `conf` directory. You can run any of them by replacing `router1` with the desired router configuration file name. Also, you may notice we added 4 routers to the `conf` directory.
 
 ### Demo
-The link for the demo will be uploaded on the submission page for the demo. Please check the submission page for the link.
+[Link to our demo video presentation.](https://mcgill-my.sharepoint.com/:v:/g/personal/sebastian_castroobando_mail_mcgill_ca/EQm4UPyAfl9FkDD_AlctLs0BqQdGyPN0YdeAcMcmuZeggg?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=o55z1h)
 
 **Important information**: 
 - We implemeted the possibility to accept/reject incoming attach requests.
