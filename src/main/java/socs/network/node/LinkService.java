@@ -40,20 +40,15 @@ public class LinkService {
   public boolean send(SOSPFPacket packet) {
       boolean ret = false;
       try {
-        /*for (LSA lsa : packet.lsaArray) {
-          System.out.println("---- IN SEND --");
-          System.out.println(lsa.toString());
-          System.out.println("---------------");
-        }*/
         synchronized(sendLock) {
           link.out.writeObject(packet);
           link.out.flush();
           link.out.reset();
         }
       } catch (SocketException e) {
-        System.out.println("Connection severed, in LinkService.send()");
+        System.out.println("Connection severed, in LinkService.send();");
       } catch (Exception e) {
-          System.out.println("Problem sending packet through Link X"); // todo find name
+          System.out.println("Problem sending packet through Link;");
           e.printStackTrace();
       }
       return ret;
@@ -63,17 +58,12 @@ public class LinkService {
       SOSPFPacket incomingPacket = null;
       try {
         incomingPacket = (SOSPFPacket) link.in.readObject();
-        /*for (LSA lsa : incomingPacket.lsaArray) {
-          System.out.println("---- IN RECEIVE --");
-          System.out.println(lsa.toString());
-          System.out.println("---------------");
-        }*/
       } catch (SocketException e) {
         return null;
       } catch (EOFException e) {
         return null;
       } catch (Exception e) {
-        System.out.println("Something went wrong when reading incoming packet");
+        System.out.println("Something went wrong when reading incoming packet;");
         e.printStackTrace();
       }
       return incomingPacket;
@@ -181,7 +171,6 @@ public class LinkService {
             // We need to check history to see if we have already received this packet
             // if we have, we should ignore it
             if (incomingPacket.history.contains(router.rd.simulatedIPAddress)) {
-              // TODO : think about the order of operations here... Should we really be ignoring the packet at this point?
               continue;
             }
 
@@ -202,11 +191,6 @@ public class LinkService {
             // Add the router to the history of the packet
             incomingPacket.history.add(router.rd.simulatedIPAddress);
 
-            //if (!lsd.hasChanged(incomingPacket.lsaArray)) {
-            //  continue;
-            //}
-
-            // We wouldn't send the LSAUPDATE here...
             router.propagation(propagatePacket, runningPort);
           } else {
             // We closed the connection, print for debugging
@@ -217,7 +201,6 @@ public class LinkService {
           System.out.print("\nConnection severed with " + link.targetRouter.simulatedIPAddress + ". Closing connection.\n>> ");
           closeConnection();
 
-          // TODO - LSA update? But this is extra stuff since we would use quit function
           return;
         }
       }

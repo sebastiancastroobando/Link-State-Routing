@@ -405,10 +405,6 @@ public class Router {
         // Link service at this port is not initialized
         continue;
       }
-      // Maybe we do some checks here to see if the link service is alive and link
-      // if (linkServices[i].link.targetRouter.status == RouterStatus.TWO_WAY) {
-      //  continue;
-      //}
 
       // Create a new HELLO packet
       SOSPFPacket helloPacket = new SOSPFPacket(rd.processIPAddress, rd.processPortNumber, rd.simulatedIPAddress, linkServices[i].link.targetRouter.simulatedIPAddress);
@@ -451,15 +447,6 @@ public class Router {
 
       // Get vector of LSA's from the link state database
       LSAUpdatePacket.lsaArray = lsd.getLSAVector();
-
-      /*System.out.println("From the start function, we are sending : dstIP" + LSAUpdatePacket.dstIP + " and port number :" + LSAUpdatePacket.srcProcessPort);
-
-      System.out.println("------- About to print LSA vector -----");
-      for (LSA lsa : LSAUpdatePacket.lsaArray) {
-        System.out.println("For the IP: " + lsa.linkStateID + " we got seq num : " + lsa.lsaSeqNumber);
-        System.out.println(lsa.toString());
-      }
-      System.out.println("-----------------------------------------");*/
 
       // before sending the LSA update packet, add the current router to SOSPF history
       LSAUpdatePacket.history.add(rd.simulatedIPAddress);

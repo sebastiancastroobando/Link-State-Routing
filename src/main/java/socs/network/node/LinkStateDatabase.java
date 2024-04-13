@@ -247,9 +247,6 @@ public class LinkStateDatabase {
       String key = lsa.linkStateID;
       if (_store.containsKey(key)) {
         // Check if the sequence number is greater
-        // for debugging, lsaSeqNum 
-        //System.out.println("\nNEW ENTRY : LSA Seq Number: " + lsa.lsaSeqNumber);
-        //System.out.println("Store Seq Number: " + _store.get(key).lsaSeqNumber);
         if (_store.get(key).lsaSeqNumber < lsa.lsaSeqNumber) {
           // Update the entry
           _store.put(key, lsa);

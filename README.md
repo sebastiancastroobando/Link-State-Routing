@@ -1,13 +1,12 @@
-# Link State Routing - A Java Simulation
+# Link State Routing - Assignment #3
 
 ### Authors
 - Denis Aleksandrov
 - Sebastian Castro Obando
 
-### Decription
-This project is a simulation of a link state routing protocol. The project is written in Java and uses Java socket programming to simulate the communication between routers. The routers are connected in a network and exchange link state advertisements (LSAs) through LSA updates and flooding. The routers use the Dijkstra algorithm on their link state database to calculate the shortest path to all other routers in the network.
-
 ### How to compile and run
+We wrote shell scripts to compile and run the project. These scripts just run the commands that we would run manually.
+
 To compile the project, run the following command in the project root directory:
 ```bash
 ./compile.sh
@@ -16,24 +15,36 @@ To run a router, run the following command in the project root directory:
 ```bash
 ./run.sh router1
 ```
-Note that there are 7 router configurations in the `conf` directory. You can run any of them by replacing `router1` with the desired router configuration file name.
+Note that there are 7 router configurations in the `conf` directory. You can run any of them by replacing `router1` with the desired router configuration file name. Also, you may notice we added 4 routers to the `conf` directory.
 
-### Example Topologies
+### Demo
+**Important information**: 
+- We implemeted the possibility to accept/reject incoming attach requests.
+- During the demo, the grader may notice the sequence number start at 0 instead of `INTEGER.MIN_VALUE`. This is because we changed the sequence number to start at 0 to make it easier to debug.
+- Additional functions were added for debugging purposes. 
+    - `lsd` : to print the link state database of the router that runs the command.
+    - `help` : to print the available commands.
+- The `neighbors` command does not print empty if no router is connected, rather it shows the availability of the ports. Furthermore, if a "future" neighbor router runs `attach` but not `start`, it will show the router as "Attached, but not initialized". In the example below, router `192.168.1.2` has attached and started, but router `192.168.1.3` has only attached.
+```text
+>> neighbors
+Port 0 : 192.168.1.2 (TWO_WAY)
+Port 1 : 192.168.1.3 (Attached, but not initialized)
+Port 2 : (Free)
+Port 3 : (Free)
 
-#### Topology 1 - Showing cyclic handling behavior
-In this topology, we want to show how the routers handle cyclic paths. [Watch video presentation here.]()
+```
 
-![topology1](./docs/topology1.png)
+#### Topology 1 - Simple topology
+The first topology we will run is the topology that was shown in class during the live demo. This topology consist of 4 routers connected in a line. We will connect the routers progressively to show the link state database updates. Wjh
+![topology1](./topology1.png)
 
-#### Topology 2 - Simulating link failure
-In this topology, we want to show how the routers handle link failure and reconnection. [Watch video presentation here.]()
+The topology will
 
-![topology2](./docs/topology2.png)
+#### Topology 2 - Topology from the handout
+For the second part of the demo, we wanted to show a more complex topology. Thus, we implemented the topology from the handout. This topology consists of 7 routers connected as shown below. There will be 2 routers "failures" (in reality a quit) to show how the routers update their link state database. Furthermore, we will be able to show how shortest path changes when a router is removed from the network. 
+![topology2](./topology2.png)
+
 
 ### Contributions disclosure
 Each author contributed equally to the project.
 
----
-### Non-important TODOs 
--[ ] you can attach twice to the same router. Should we check for this? 
--[ ] should the synchronization happen over all the LSA update? Because LSA can change between update and moment we get the vector. 
