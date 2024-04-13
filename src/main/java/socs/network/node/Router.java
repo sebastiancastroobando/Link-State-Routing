@@ -2,7 +2,6 @@ package socs.network.node;
 
 import socs.network.message.SOSPFPacket;
 import socs.network.util.Configuration;
-import socs.network.message.LSA;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
